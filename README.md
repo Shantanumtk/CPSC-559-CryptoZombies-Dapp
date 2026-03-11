@@ -1,333 +1,166 @@
-# CryptoZombies DApp (Dockerized Local Blockchain)
+# CryptoZombies DApp — Dockerized Local Blockchain
 
-A fully dockerized CryptoZombies decentralized application running on a local Ethereum blockchain using Ganache, Truffle, and a simple Web3 frontend.
+A fully containerized CryptoZombies decentralized application running on a local Ethereum blockchain using Ganache, Truffle, and a Web3.js frontend.
 
-This project demonstrates the complete lifecycle of a smart contract application: contract development, deployment, and interaction through a browser-based UI connected with MetaMask.
-
-The setup is containerized so the entire environment can be reproduced easily.
+Create, battle, and level up zombies — entirely on a local chain, reproducible with `docker compose up`.
 
 ---
 
-# Architecture Overview
+## Architecture
 
-Frontend (HTML + Web3.js)
-        |
-        | Web3 RPC
-        v
-MetaMask Wallet
-        |
-        | RPC Calls
-        v
-Ganache Local Ethereum Blockchain (Docker)
-        |
-        v
-Smart Contracts (Solidity)
-        |
-        v
-Deployment using Truffle (Docker)
+```
+Frontend (HTML + Web3.js)    →    MetaMask Wallet    →    Ganache (Local Ethereum)
+     localhost:3000                Browser Extension           localhost:8545
+                                                                    │
+                                                          Smart Contracts (Solidity)
+                                                          Deployed via Truffle
+```
 
 ---
 
-# Tech Stack
+## Tech Stack
 
-Blockchain
-Ethereum (Local Development Network)
-
-Smart Contracts
-Solidity
-
-Blockchain Tools
-Ganache CLI
-Truffle
-
-Frontend
-HTML
-JavaScript
-Web3.js
-jQuery
-
-Containerization
-Docker
-Docker Compose
-
-Wallet
-MetaMask
+| Layer            | Technology                            |
+|------------------|---------------------------------------|
+| Blockchain       | Ethereum (Local Dev Network)          |
+| Smart Contracts  | Solidity                              |
+| Dev Framework    | Truffle                               |
+| Local Chain      | Ganache CLI                           |
+| Frontend         | HTML, JavaScript, Web3.js, jQuery     |
+| Wallet           | MetaMask                              |
+| Infrastructure   | Docker, Docker Compose                |
 
 ---
 
-# Project Structure
+## Project Structure
 
+```
 Cryptozombie-demo-package/
-
-contracts/
-    Migrations.sol
-    ZombieFactory.sol
-    ZombieFeeding.sol
-    ZombieHelper.sol
-    ZombieAttack.sol
-    ZombieOwnership.sol
-
-migrations/
-    1_initial_migration.js
-    2_deploy_contracts.js
-
-build/
-    contracts/
-        ZombieOwnership.json
-
-frontend/
-    index.html
-
-Dockerfile.truffle
-Dockerfile.frontend
-docker-compose.yml
-truffle-config.js
-README.md
+├── contracts/
+│   ├── Migrations.sol
+│   ├── ZombieFactory.sol
+│   ├── ZombieFeeding.sol
+│   ├── ZombieHelper.sol
+│   ├── ZombieAttack.sol
+│   └── ZombieOwnership.sol
+├── migrations/
+│   ├── 1_initial_migration.js
+│   └── 2_deploy_contracts.js
+├── build/contracts/
+│   └── ZombieOwnership.json
+├── frontend/
+│   └── index.html
+├── Dockerfile.truffle
+├── Dockerfile.frontend
+├── docker-compose.yml
+├── truffle-config.js
+└── README.md
+```
 
 ---
 
-# Prerequisites
+## Prerequisites
 
-Before running this project make sure the following tools are installed.
-
-Docker
-Docker Compose
-MetaMask Browser Extension
-Google Chrome or Firefox
+- Docker & Docker Compose
+- MetaMask browser extension
+- Chrome or Firefox
 
 ---
 
-# Running the Project
+## Quick Start
 
-Follow these steps to start the full environment.
+**1. Start the local blockchain**
 
-Step 1 Start the local Ethereum blockchain
-
+```bash
 docker compose up -d ganache
+```
 
-This starts a Ganache container which acts as the local Ethereum blockchain.
+Ganache exposes RPC at `http://localhost:8545`.
 
-Ganache will expose RPC endpoint on port 8545.
+**2. Deploy contracts**
 
----
-
-Step 2 Deploy smart contracts
-
+```bash
 docker compose run --rm truffle truffle migrate --reset --network development
+```
 
-This will:
+Compiles Solidity contracts, deploys to Ganache, outputs artifacts to `build/contracts/`.
 
-compile the Solidity contracts
-deploy them to the local blockchain
-generate contract artifacts in build/contracts
+**3. Start the frontend**
 
----
-
-Step 3 Start the frontend
-
+```bash
 docker compose up -d frontend
+```
 
-The UI will be available at:
-
-http://localhost:3000
+Open `http://localhost:3000` in your browser.
 
 ---
 
-# Viewing Ganache Accounts
+## MetaMask Setup
 
-Ganache automatically generates accounts for testing.
+### Import a Ganache Account
 
-To view them run:
-
+```bash
 docker compose logs ganache
+```
 
-You will see something like:
+Copy any private key from the `Private Keys` section. In MetaMask: **Account Icon → Import Account → Private Key → Paste**.
 
-Available Accounts
+> Remove the `0x` prefix if MetaMask rejects the key.
 
-(0) 0xabc...
-(1) 0xdef...
-...
+### Add Ganache Network
 
-Private Keys
+In MetaMask: **Settings → Networks → Add Network → Add Manually**
 
-(0) xxxxxxxxx
-(1) xxxxxxxxx
-
-These private keys can be imported into MetaMask.
-
----
-
-# Connecting MetaMask with Ganache
-
-Follow these steps to connect your wallet to the local blockchain.
-
-Step 1 Open MetaMask
-
-Click the MetaMask icon in your browser.
-
----
-
-Step 2 Import Ganache account
-
-Click account icon
-
-Select
-
-Import Account
-
-Select
-
-Private Key
-
-Copy a private key from the Ganache container logs and paste it.
-
-Example
-
-docker compose logs ganache
-
-Copy any private key under the Private Keys section.
-
----
-
-Step 3 Add Ganache network
-
-Open MetaMask
-
-Go to
-
-Settings
-Networks
-Add Network
-Add manually
-
-Use the following values
-
-Network Name: Ganache Local
-RPC URL: http://127.0.0.1:8545
-Chain ID: 1337
+```
+Network Name:    Ganache Local
+RPC URL:         http://127.0.0.1:8545
+Chain ID:        1337
 Currency Symbol: ETH
+```
 
-Save the network.
-
----
-
-Step 4 Switch MetaMask network
-
-Switch your MetaMask network to
-
-Ganache Local
-
-The imported account should now show a balance of 1000 ETH (test ETH).
+Switch to **Ganache Local** — the imported account should show 1000 ETH (test ETH).
 
 ---
 
-# Using the Application
+## Usage
 
-Open the frontend
+1. Open `http://localhost:3000`
+2. Approve the MetaMask connection prompt
+3. Available actions:
+   - **Create Zombie** — mint a new zombie on-chain
+   - **Show Zombies** — view your zombie army
+   - **Level Up Zombie** — power up a zombie
 
-http://localhost:3000
-
-MetaMask will prompt you to connect.
-
-Approve the connection.
-
-You can now:
-
-Create Zombie
-Show Zombies
-Level Up Zombie
-
-Each action sends a transaction to the local Ethereum blockchain.
+Each action sends a transaction to the local blockchain.
 
 ---
 
-# Redeploying Contracts
+## Common Operations
 
-If you want to redeploy contracts from scratch run
+**Redeploy contracts**
 
+```bash
 docker compose run --rm truffle truffle migrate --reset --network development
+```
 
-This redeploys the smart contracts to the Ganache blockchain.
+**Full reset (wipes blockchain state)**
 
----
-
-# Resetting the Blockchain
-
-To completely reset the blockchain run
-
+```bash
 docker compose down -v
-
-This removes containers and Ganache data.
-
-Then restart the system:
-
 docker compose up -d ganache
 docker compose run --rm truffle truffle migrate --reset --network development
 docker compose up -d frontend
+```
 
-Note
-
-Ganache will generate new private keys after reset.
-
-You must re-import the keys in MetaMask.
+> Ganache generates new private keys after reset — re-import them in MetaMask.
 
 ---
 
-# Troubleshooting
+## Troubleshooting
 
-MetaMask cannot connect
-
-Make sure Ganache container is running
-
-docker compose ps
-
-RPC endpoint must be
-
-http://127.0.0.1:8545
-
----
-
-Cannot import private key
-
-Remove the 0x prefix from the key if MetaMask rejects it.
-
----
-
-Transactions failing
-
-Ensure MetaMask is connected to the Ganache Local network and not Ethereum Mainnet.
-
----
-
-Frontend not updating
-
-Hard refresh the browser
-
-CMD + SHIFT + R
-
----
-
-# Future Improvements
-
-Add React frontend
-Integrate Hardhat instead of Truffle
-Deploy to Sepolia testnet
-Add NFT metadata and visualization
-Add IPFS storage
-
----
-
-# Learning Goals
-
-Understand Ethereum smart contract development
-Learn local blockchain testing using Ganache
-Interact with smart contracts using Web3.js
-Understand wallet integration with MetaMask
-Learn containerized blockchain development environments
-
----
-
-# License
-
-MIT License
+| Problem                  | Fix                                                                      |
+|--------------------------|--------------------------------------------------------------------------|
+| MetaMask can't connect   | Check Ganache is running: `docker compose ps`. RPC must be `http://127.0.0.1:8545` |
+| Private key import fails | Strip the `0x` prefix                                                    |
+| Transactions failing     | Verify MetaMask is on Ganache Local, not Mainnet                         |
+| Frontend stale           | Hard refresh: `Cmd+Shift+R` / `Ctrl+Shift+R`                            |
