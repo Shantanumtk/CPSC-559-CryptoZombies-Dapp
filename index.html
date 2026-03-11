@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CryptoZombies front-end</title>
+  <link rel="icon" href="favicon.ico" />
+
+  <script
+    language="javascript"
+    type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"
+  ></script>
+  <script
+    language="javascript"
+    type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"
+  ></script>
+  <script
+    language="javascript"
+    type="text/javascript"
+    src="cryptozombies_abi.js"
+  ></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    #txStatus {
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+
+    #controls {
+      margin-bottom: 20px;
+    }
+
+    #controls button,
+    #controls input {
+      margin-right: 10px;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+    }
+
+    .zombie {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      width: 320px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>CryptoZombies</h2>
+
+  <div id="walletInfo">Wallet not connected</div>
+  <div id="txStatus"></div>
+
+  <div id="controls">
+    <input type="text" id="zombieName" placeholder="Enter zombie name" />
+    <button class="showZombieButton">Show Zombies</button>
+    <button class="createzombieButton">Create Zombie</button>
+    <button class="levelupButton">Level Up First Zombie</button>
+  </div>
+
+  <div id="zombies"></div>
+
+  <script>
+    let web3;
+    let cryptoZombies;
+    let userAccount;
+
+    const cryptoZombiesAddress = "0x3225Cc7F6147eAeaaBA6083b8cCfA79EA45a4d50";
+
+    const showZombieButton = document.querySelector(".showZombieButton");
+    const createzombieButton = document.querySelector(".createzombieButton");
+    const levelupButton = document.querySelector(".levelupButton");
+    const zombieNameInput = document.getElementById("zombieName");
+    const txStatus = document.getElementById("txStatus");
+    const walletInfo = document.getElementById("walletInfo");
+
+    function setStatus(message) {
+      txStatus.innerText = message;
+    }
+
+    function formatError(error) {
+      if (!error) return "Unknown error";
+
+      if (error.message) return error.message;
+
+      try {
+        return JSON.stringify(error, null, 2);
+      } catch (e) {
+        return String(error);
+      }
+    }
+
+    function formatReadyTime(timestamp) {
+      const ts = Number(timestamp) * 1000;
+      if (Number.isNaN(ts)) return timestamp;
+      return new Date(ts).toLocaleString();
+    }
+
+    async function connectWallet() {
+      if (!window.ethereum) {
+        setStatus("MetaMask not found. Please install MetaMask.");
+        return false;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts"
+        });
+
+        web3 = new Web3(window.ethereum);
+        userAccount = accounts[0];
+
+        walletInfo.innerText = `Connected wallet: ${userAccount}`;
+        return true;
+      } catch (error) {
+        setStatus("Wallet connection failed: " + formatError(error));
+        return false;
+      }
+    }
+
+    function startApp() {
+      cryptoZombies = new web3.eth.Contract(
+        cryptoZombiesABI,
+        cryptoZombiesAddress
+      );
+
+      cryptoZombies.events.Transfer({ filter: { _to: userAccount } })
+        .on("data", async function () {
+          const ids = await getZombiesByOwner(userAccount);
+          displayZombies(ids);
+        })
+        .on("error", function (error) {
+          console.error("Transfer event error:", error);
+        });
+    }
+
+    function displayZombies(ids) {
+      $("#zombies").empty();
+
+      if (!ids || ids.length === 0) {
+        $("#zombies").append("<p>No zombies found for this wallet.</p>");
+        return;
+      }
+
+      for (const id of ids) {
+        getZombieDetails(id)
+          .then(function (zombie) {
+            $("#zombies").append(`
+              <div class="zombie">
+                <ul>
+                  <li><strong>ID:</strong> ${id}</li>
+                  <li><strong>Name:</strong> ${zombie.name}</li>
+                  <li><strong>DNA:</strong> ${zombie.dna}</li>
+                  <li><strong>Level:</strong> ${zombie.level}</li>
+                  <li><strong>Wins:</strong> ${zombie.winCount}</li>
+                  <li><strong>Losses:</strong> ${zombie.lossCount}</li>
+                  <li><strong>Ready Time:</strong> ${formatReadyTime(zombie.readyTime)}</li>
+                </ul>
+              </div>
+            `);
+          })
+          .catch(function (error) {
+            console.error("Error fetching zombie details:", error);
+          });
+      }
+    }
+
+    function createRandomZombie(name) {
+      setStatus("Creating new zombie on the blockchain. This may take a while...");
+
+      return cryptoZombies.methods.createRandomZombie(name)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          setStatus("Successfully created zombie: " + name);
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", function (error) {
+          setStatus("Create zombie failed: " + formatError(error));
+        });
+    }
+
+    function feedOnKitty(zombieId, kittyId) {
+      setStatus("Eating a kitty. This may take a while...");
+
+      return cryptoZombies.methods.feedOnKitty(zombieId, kittyId)
+        .send({ from: userAccount })
+        .on("receipt", function () {
+          setStatus("Ate a kitty and spawned a new zombie!");
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", function (error) {
+          setStatus("Feed on kitty failed: " + formatError(error));
+        });
+    }
+
+    function levelUp(zombieId) {
+      setStatus("Leveling up your zombie...");
+
+      return cryptoZombies.methods.levelUp(zombieId)
+        .send({
+          from: userAccount,
+          value: web3.utils.toWei("0.001", "ether")
+        })
+        .on("receipt", function () {
+          setStatus("Zombie successfully leveled up.");
+          getZombiesByOwner(userAccount).then(displayZombies);
+        })
+        .on("error", function (error) {
+          setStatus("Level up failed: " + formatError(error));
+        });
+    }
+
+    function getZombieDetails(id) {
+      return cryptoZombies.methods.zombies(id).call();
+    }
+
+    function zombieToOwner(id) {
+      return cryptoZombies.methods.zombieToOwner(id).call();
+    }
+
+    function getZombiesByOwner(owner) {
+      return cryptoZombies.methods.getZombiesByOwner(owner).call();
+    }
+
+    window.addEventListener("load", async () => {
+      const connected = await connectWallet();
+
+      if (!connected) {
+        console.log("Wallet not connected.");
+        return;
+      }
+
+      startApp();
+
+      const ids = await getZombiesByOwner(userAccount);
+      displayZombies(ids);
+    });
+
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", function (accounts) {
+        if (accounts.length === 0) {
+          walletInfo.innerText = "Wallet disconnected";
+          $("#zombies").empty();
+          setStatus("Please reconnect MetaMask.");
+          return;
+        }
+
+        userAccount = accounts[0];
+        walletInfo.innerText = `Connected wallet: ${userAccount}`;
+        getZombiesByOwner(userAccount).then(displayZombies);
+      });
+
+      window.ethereum.on("chainChanged", function () {
+        window.location.reload();
+      });
+    }
+
+    createzombieButton.addEventListener("click", () => {
+      const zombieName = zombieNameInput.value.trim() || "MyZombie";
+      createRandomZombie(zombieName);
+    });
+
+    showZombieButton.addEventListener("click", () => {
+      getZombiesByOwner(userAccount)
+        .then(displayZombies)
+        .catch(function (error) {
+          setStatus("Show zombies failed: " + formatError(error));
+        });
+    });
+
+    levelupButton.addEventListener("click", async () => {
+      try {
+        const ids = await getZombiesByOwner(userAccount);
+
+        if (!ids || ids.length === 0) {
+          setStatus("No zombies found. Create one first.");
+          return;
+        }
+
+        await levelUp(ids[0]);
+      } catch (error) {
+        setStatus("Level up failed: " + formatError(error));
+      }
+    });
+  </script>
+</body>
+</html>
