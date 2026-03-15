@@ -1,3 +1,4 @@
+# Group Members: Fardeen Kachawa, Shantanu Mitkari, John Paul Gomez-Reed, Jaiveer Kapadia
 # CryptoZombies DApp — Dockerized Local Blockchain
 
 A fully containerized CryptoZombies decentralized application running on a local Ethereum blockchain using Ganache, Truffle, and a Web3.js frontend.
