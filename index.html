@@ -1,176 +1,300 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>CryptoZombies</title>
+  <meta charset="utf-8">
+  <title>CryptoZombies DApp</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.2.7-rc.0/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.7.5/dist/web3.min.js"></script>
 
-<style>
-body{
-  font-family: Arial;
-  margin:20px;
-}
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 40px;
+    }
 
-#zombies{
-  margin-top:20px;
-}
+    .container {
+      max-width: 1000px;
+      margin: auto;
+    }
 
-.zombie{
-  border:1px solid #ccc;
-  padding:10px;
-  margin-bottom:10px;
-}
-</style>
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      outline: none;
+      width: 240px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #22c55e;
+      color: white;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      background: #16a34a;
+    }
+
+    .show-btn {
+      margin-bottom: 10px;
+    }
+
+    .zombie-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .zombie-card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .zombie-card h3 {
+      margin-top: 0;
+    }
+
+    .dna {
+      font-size: 12px;
+      color: #94a3b8;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+
+    .level {
+      margin-top: 8px;
+    }
+
+    .stats {
+      margin-bottom: 10px;
+    }
+
+    .level-btn {
+      padding: 10px 16px;
+    }
+
+    .empty-message {
+      color: #94a3b8;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 
 <body>
+  <div class="container">
+    <h1>🧟 CryptoZombies</h1>
 
-<h2>CryptoZombies</h2>
+    <div class="controls">
+      <div class="control-group">
+        <input id="nameInput" placeholder="Zombie name">
+        <button onclick="createZombie()">Create Zombie</button>
+      </div>
 
-<div id="txStatus"></div>
+      <div class="control-group">
+        <input id="searchInput" placeholder="Search Zombies" oninput="searchZombies()">
+        <button onclick="searchZombies()">Search</button>
+      </div>
+    </div>
 
-<input id="name" placeholder="Zombie name">
+    <button class="show-btn" onclick="loadZombies()">Show Zombies</button>
 
-<button onclick="createZombie()">Create Zombie</button>
-<button onclick="showZombies()">Show Zombies</button>
-<button onclick="levelUpFirst()">Level Up First Zombie</button>
+    <h2>Your Zombie Army</h2>
 
-<div id="zombies"></div>
+    <div id="zombies" class="zombie-grid"></div>
+    <div id="emptyMessage" class="empty-message"></div>
+  </div>
 
 <script>
+let zombieArmy = [];
+let web3;
+let contract;
+let account;
 
-let web3
-let cryptoZombies
-let userAccount
+async function init() {
+  if (!window.ethereum) {
+    alert("MetaMask not detected.");
+    return;
+  }
 
-async function init(){
+  web3 = new Web3(window.ethereum);
 
-if(window.ethereum){
+  await window.ethereum.request({ method: "eth_requestAccounts" });
 
-web3 = new Web3(window.ethereum)
+  const accounts = await web3.eth.getAccounts();
+  account = accounts[0];
 
-await window.ethereum.request({method:"eth_requestAccounts"})
+  const response = await fetch("./build/contracts/ZombieOwnership.json");
+  const data = await response.json();
 
-const accounts = await web3.eth.getAccounts()
+  const currentNetworkId = await web3.eth.net.getId();
+  const deployedNetwork = data.networks[currentNetworkId];
 
-userAccount = accounts[0]
+  if (!deployedNetwork) {
+    alert("Contract not found on the current network. Please make sure MetaMask is on Ganache and contracts are redeployed.");
+    return;
+  }
 
-loadContract()
-
-}
-}
-
-async function loadContract(){
-
-const response = await fetch("./build/contracts/ZombieOwnership.json")
-
-const artifact = await response.json()
-
-const abi = artifact.abi
-
-const networkId = await web3.eth.net.getId()
-
-const address = artifact.networks[networkId].address
-
-cryptoZombies = new web3.eth.Contract(abi,address)
-
-console.log("contract loaded:",address)
-
+  contract = new web3.eth.Contract(data.abi, deployedNetwork.address);
 }
 
-function setStatus(message){
+window.addEventListener("load", init);
 
-document.getElementById("txStatus").innerText = message
+async function createZombie() {
+  const name = document.getElementById("nameInput").value.trim();
 
+  if (!name) {
+    alert("Please enter a zombie name.");
+    return;
+  }
+
+  await contract.methods
+    .createRandomZombie(name)
+    .send({ from: account });
+
+  document.getElementById("nameInput").value = "";
+  await loadZombies();
 }
 
-function createZombie(){
+async function loadZombies() {
+  if (!contract || !account) return;
 
-const name = document.getElementById("name").value || "MyZombie"
+  const ids = await contract.methods
+    .getZombiesByOwner(account)
+    .call();
 
-setStatus("Creating zombie...")
+  zombieArmy = [];
+  document.getElementById("zombies").innerHTML = "";
+  document.getElementById("emptyMessage").innerText = "";
 
-cryptoZombies.methods.createRandomZombie(name)
-.send({from:userAccount})
-.on("receipt",function(){
+  for (let i = 0; i < ids.length; i++) {
+    const zombie = await contract.methods
+      .zombies(ids[i])
+      .call();
 
-setStatus("Zombie created!")
+    const zombieData = {
+      id: ids[i],
+      ...zombie
+    };
 
-showZombies()
+    zombieArmy.push(zombieData);
+  }
 
-})
-.on("error",function(err){
+  renderZombieList(zombieArmy);
 
-setStatus(err.message)
-
-})
-
+  if (ids.length === 0) {
+    document.getElementById("emptyMessage").innerText = "No zombies found.";
+  }
 }
 
-function showZombies(){
+function renderZombieList(list) {
+  const zombiesContainer = document.getElementById("zombies");
+  zombiesContainer.innerHTML = "";
 
-cryptoZombies.methods.getZombiesByOwner(userAccount).call()
-.then(function(ids){
-
-$("#zombies").empty()
-
-for(let i=0;i<ids.length;i++){
-
-cryptoZombies.methods.zombies(ids[i]).call()
-.then(function(z){
-
-$("#zombies").append(
-
-`<div class="zombie">
-Name: ${z.name}<br>
-DNA: ${z.dna}<br>
-Level: ${z.level}
-</div>`
-
-)
-
-})
-
+  list.forEach((zombie) => {
+    displayZombie(zombie);
+  });
 }
 
-})
+function displayZombie(zombie) {
+  const card = document.createElement("div");
+  card.className = "zombie-card";
 
+  card.innerHTML = `
+    <h3>${zombie.name}</h3>
+
+    <div class="dna">
+      DNA: ${zombie.dna}
+    </div>
+
+    <div class="level">
+      Level: ${zombie.level}
+    </div>
+
+    <div class="stats">
+      Wins: ${zombie.winCount} | Losses: ${zombie.lossCount}
+    </div>
+
+    <button class="level-btn" onclick="levelUp(${zombie.id})">
+      Level Up
+    </button>
+  `;
+
+  document.getElementById("zombies").appendChild(card);
 }
 
-function levelUpFirst(){
+async function levelUp(id) {
+  await contract.methods
+    .levelUp(id)
+    .send({
+      from: account,
+      value: web3.utils.toWei("0.001", "ether")
+    });
 
-cryptoZombies.methods.getZombiesByOwner(userAccount).call()
-.then(function(ids){
-
-if(ids.length==0){
-
-setStatus("No zombie found")
-
-return
-
+  await loadZombies();
 }
 
-cryptoZombies.methods.levelUp(ids[0])
-.send({
-from:userAccount,
-value:web3.utils.toWei("0.001","ether")
-})
-.on("receipt",function(){
+function searchZombies() {
+  const query = document
+    .getElementById("searchInput")
+    .value
+    .toLowerCase()
+    .trim();
 
-setStatus("Zombie leveled up")
+  document.getElementById("emptyMessage").innerText = "";
 
-showZombies()
+  if (query === "") {
+    renderZombieList(zombieArmy);
 
-})
+    if (zombieArmy.length === 0) {
+      document.getElementById("emptyMessage").innerText = "No zombies found.";
+    }
+    return;
+  }
 
-})
+  const filtered = zombieArmy.filter((zombie) =>
+    zombie.name.toLowerCase().includes(query) ||
+    zombie.dna.toString().includes(query) ||
+    zombie.level.toString().includes(query)
+  );
 
+  renderZombieList(filtered);
+
+  if (filtered.length === 0) {
+    document.getElementById("emptyMessage").innerText = "No matches found.";
+  }
 }
-
-window.addEventListener("load",init)
-
 </script>
 
 </body>
