@@ -146,6 +146,14 @@
     <div id="emptyMessage" class="empty-message"></div>
   </div>
 
+<h3>Zombie Actions</h3>
+
+<input id="zombieId" placeholder="Zombie ID">
+<input id="targetAddress" placeholder="Transfer address">
+<button onclick="showOwner()">Show Owner</button>
+<button onclick="transferZombie()">Transfer Zombie</button>
+
+
   <script>
     let zombieArmy = [];
     let web3;
@@ -282,16 +290,16 @@
 
     async function levelUp(id) {
       try {
-        await contract.methods.levelUp(id).send({
-          from: account,
-          value: web3.utils.toWei("0.001", "ether")
-        });
+  await contract.methods.levelUp(id).send({
+    from: account,
+    value: web3.utils.toWei("0.001", "ether")
+  });
 
-        await loadZombies();
-      } catch (err) {
-        console.error("Level up error:", err);
-        alert("Level up failed. Open browser console.");
-      }
+  await loadZombies();
+} catch (err) {
+  console.error("Level up error:", err);
+  alert("Level up failed. Open browser console.");
+}
     }
 
     function searchZombies() {
@@ -319,6 +327,54 @@
         document.getElementById("emptyMessage").innerText = "No matches found.";
       }
     }
+
+
+
+async function showOwner(){
+
+  try{
+    const id = document.getElementById("zombieId").value;
+
+    const owner = await contract.methods.ownerOf(id).call();
+
+    alert("Owner of zombie " + id + " is " + owner);
+
+  }catch(err){
+    console.error(err);
+    alert("Failed to get owner");
+  }
+
+}
+
+async function transferZombie(){
+
+  try{
+    const id = document.getElementById("zombieId").value;
+    const address = document.getElementById("targetAddress").value;
+
+    if(!web3.utils.isAddress(address)){
+      alert("Invalid address");
+      return;
+    }
+
+    await contract.methods.transferFrom(account,address,id)
+      .send({from:account});
+
+    alert("Zombie transferred!");
+
+    await loadZombies();
+
+  }catch(err){
+    console.error(err);
+    alert("Transfer failed");
+  }
+
+}
+
+
+window.addEventListener("load",init)
+
+
 
     function randomizeColor(button) {
       const card = button.parentElement;
