@@ -1,3 +1,4 @@
+cat > demo_setup.sh << 'EOF'
 #!/usr/bin/env bash
 # demo_setup.sh — full deploy + print keys and addresses cleanly
 set -euo pipefail
@@ -27,9 +28,9 @@ echo ""
 echo -e "${YELLOW}Step 5: Fetching keys and addresses…${NC}"
 sleep 2
 
-# Parse keys and addresses from ganache logs
 KEYS=($(docker compose logs ganache | grep -E "cz-ganache\s+\|\s+\([0-9]\) 0x" | grep -v "ETH" | awk '{print $NF}' | sed 's/0x//' | head -5))
 ADDRS=($(docker compose logs ganache | grep -E "cz-ganache\s+\|\s+\([0-9]\).*ETH" | awk '{print $4}' | head -5))
+NAMES=("Account A" "Account B" "Account C" "Account D" "Account E")
 
 echo ""
 echo -e "${BOLD}${GREEN}════════════════════════════════════════════════════════${NC}"
@@ -42,36 +43,39 @@ echo -e "  RPC URL:  ${CYAN}http://127.0.0.1:8545${NC}"
 echo -e "  Chain ID: ${CYAN}1337${NC}"
 echo -e "  Symbol:   ${CYAN}ETH${NC}"
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${BOLD}  PRIVATE KEYS (paste directly into MetaMask)${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-NAMES=("Account A" "Account B" "Account C" "Account D" "Account E")
 for i in 0 1 2 3 4; do
   echo -e "  ${BOLD}${NAMES[$i]}:${NC}"
   echo -e "    Key:     ${CYAN}${KEYS[$i]}${NC}"
   echo -e "    Address: ${CYAN}${ADDRS[$i]}${NC}"
   echo ""
 done
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "${BOLD}  ADDRESSES (for Transfer / Marketplace demo)${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 for i in 0 1 2 3 4; do
   echo -e "  ${BOLD}${NAMES[$i]}:${NC} ${CYAN}${ADDRS[$i]}${NC}"
 done
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}  QUICK DEMO STEPS${NC}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "${BOLD}  ZombieCoin DEMO STEPS${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "  1. Import Account A, B, C keys into MetaMask"
-echo "  2. Switch to Account A → Create zombie"
-echo "  3. Switch to Account B → Create zombie"
-echo "  4. Switch to Account C → Create zombie"
-echo "  5. Battle, Feed on Kitty, List on Marketplace"
-echo "  6. Transfer zombie to Account B address above"
-echo "  7. Check Graveyard, Leaderboard, Explorer"
+echo "  2. Open http://localhost:3000 → hard refresh Cmd+Shift+R"
+echo "  3. Click 🪙 ZMB in navbar → Claim 500 free ZMB"
+echo "  4. Switch to Account B, C → Claim their 500 ZMB too"
+echo "  5. Create zombies on A, B, C"
+echo "  6. Battle tab → set bet → ATTACK!"
+echo "  7. Win = ZMB balance updates in navbar instantly"
+echo "  8. Buy more ZMB if needed (auto-prompt appears)"
+echo "  9. List zombie on Marketplace → buy from another account"
+echo " 10. Check Leaderboard, Graveyard, Explorer"
 echo ""
-echo -e "${GREEN}  Hard refresh browser: Cmd + Shift + R${NC}"
+echo -e "${GREEN}  Hard refresh: Cmd + Shift + R${NC}"
 echo ""
+EOF

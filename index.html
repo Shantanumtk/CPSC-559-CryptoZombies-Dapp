@@ -354,6 +354,74 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-t
 }
 @media(max-width:480px){.zmodal-body{grid-template-columns:1fr;text-align:center;}}
 
+
+/* ── ZOMBIECOIN ── */
+.zmb-badge{
+  display:flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,#1a0a00,#2a1500);
+  border:1px solid #f59e0b44;
+  border-radius:20px;padding:5px 14px;font-size:13px;
+  cursor:pointer;transition:all .2s;
+}
+.zmb-badge:hover{border-color:var(--amber);box-shadow:0 0 12px rgba(251,191,36,0.2);}
+.zmb-icon{font-size:16px;}
+.zmb-amount{color:var(--amber);font-weight:800;font-family:monospace;}
+.zmb-label{color:var(--muted2);font-size:11px;}
+
+/* ── AUTO-BUY MODAL ── */
+.autobuy-overlay{
+  position:fixed;inset:0;background:rgba(0,4,16,0.85);
+  z-index:400;display:none;align-items:center;justify-content:center;
+}
+.autobuy-overlay.show{display:flex;}
+.autobuy-modal{
+  background:linear-gradient(160deg,#1a1000,#0d0800);
+  border:1px solid #f59e0b66;border-radius:16px;
+  padding:28px;max-width:380px;width:90%;
+  box-shadow:0 0 40px rgba(251,191,36,0.15);
+  text-align:center;
+  animation:modalIn .3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.autobuy-icon{font-size:52px;margin-bottom:12px;}
+.autobuy-modal h3{font-size:20px;font-weight:800;color:var(--amber);margin-bottom:8px;}
+.autobuy-modal p{font-size:13px;color:var(--muted2);margin-bottom:20px;line-height:1.6;}
+.autobuy-actions{display:flex;gap:10px;justify-content:center;}
+
+/* ── ZMB WALLET TAB ── */
+.zmb-wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.zmb-wallet-card{
+  background:linear-gradient(160deg,#1a1000,#0d0800);
+  border:1px solid #f59e0b33;border-radius:var(--radius);
+  padding:20px;text-align:center;
+}
+.zmb-wallet-card .big-val{font-size:36px;font-weight:900;color:var(--amber);font-family:monospace;}
+.zmb-wallet-card .big-lbl{font-size:12px;color:var(--muted2);margin-top:4px;}
+.zmb-history{max-height:240px;overflow-y:auto;}
+.zmb-history-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 12px;border-bottom:1px solid rgba(30,48,88,0.4);
+  font-size:13px;
+}
+.zmb-history-item:last-child{border-bottom:none;}
+.zmb-pos{color:var(--green);font-weight:700;}
+.zmb-neg{color:var(--red);font-weight:700;}
+
+/* ── BATTLE BET UI ── */
+.bet-section{
+  background:linear-gradient(135deg,#1a1000,#0d0800);
+  border:1px solid #f59e0b33;border-radius:var(--radius);
+  padding:16px;margin-bottom:16px;
+}
+.bet-section .bet-label{font-size:12px;color:var(--amber);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.bet-quick-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.bet-quick-btn{
+  padding:5px 12px;border:1px solid #f59e0b44;border-radius:6px;
+  background:transparent;color:var(--amber);cursor:pointer;font-size:12px;font-weight:700;
+  transition:all .2s;
+}
+.bet-quick-btn:hover{background:#f59e0b22;border-color:var(--amber);}
+.bet-balance-info{font-size:12px;color:var(--muted2);margin-top:6px;}
+
 </style>
 </head>
 <body>
@@ -375,9 +443,15 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-t
     <button class="nav-link" onclick="switchTab('leaderboard')">🏆 Ranks</button>
     <button class="nav-link" onclick="switchTab('graveyard')">💀 Graveyard</button>
     <button class="nav-link" onclick="switchTab('explore')">🌍 Explore</button>
+    <button class="nav-link" onclick="switchTab('zmwallet')">🪙 ZMB</button>
   </div>
 
   <div class="nav-right">
+    <div class="zmb-badge" id="zmb-badge" style="display:none" onclick="switchTab('zmwallet')" title="Your ZombieCoins">
+      <span class="zmb-icon">🪙</span>
+      <span class="zmb-amount" id="zmb-amount">0</span>
+      <span class="zmb-label">ZMB</span>
+    </div>
     <div class="wallet-badge" id="wallet-badge" style="display:none">
       <span class="wallet-dot"></span>
       <span class="wallet-addr" id="wallet-addr">—</span>
@@ -472,6 +546,22 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-t
         <div class="result-emoji" id="battle-emoji"></div>
         <div class="result-text" id="battle-outcome-text"></div>
         <div style="font-size:13px;color:var(--muted2);margin-top:8px" id="battle-detail"></div>
+      </div>
+      <div class="bet-section">
+        <div class="bet-label">🪙 Place Your Bet</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bet Amount (ZMB)</label>
+            <input id="bet-amount" type="number" min="100" value="100" placeholder="Min 100 ZMB">
+          </div>
+        </div>
+        <div class="bet-quick-btns">
+          <button class="bet-quick-btn" onclick="setBet(100)">100</button>
+          <button class="bet-quick-btn" onclick="setBet(250)">250</button>
+          <button class="bet-quick-btn" onclick="setBet(500)">500</button>
+          <button class="bet-quick-btn" onclick="setBetAll()">ALL IN</button>
+        </div>
+        <div class="bet-balance-info" id="bet-balance-info">Your balance: <span id="bet-zmb-display" style="color:var(--amber);font-weight:700">0</span> ZMB</div>
       </div>
       <div style="text-align:center">
         <button class="btn btn-red" style="font-size:16px;padding:14px 40px;letter-spacing:1px" onclick="attackZombie()">⚔️ ATTACK!</button>
@@ -665,7 +755,68 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-t
   </div>
 </div>
 
+
+  <!-- ══════════════════════════════════════════════ ZMB WALLET -->
+  <div id="tab-zmwallet" class="tab-pane">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🪙</span> ZombieCoin Wallet</div>
+        <button class="btn btn-green" onclick="refreshZMB()">↻ Refresh</button>
+      </div>
+      <div id="alert-zmwallet" class="alert"></div>
+      <div class="zmb-wallet-grid">
+        <div class="zmb-wallet-card">
+          <div class="big-val" id="zmb-wallet-balance">0</div>
+          <div class="big-lbl">Your ZMB Balance</div>
+          <div style="margin-top:12px;font-size:12px;color:var(--muted2)" id="zmb-starter-status"></div>
+        </div>
+        <div class="zmb-wallet-card">
+          <div class="big-val" style="color:var(--green)" id="zmb-total-supply">0</div>
+          <div class="big-lbl">Total ZMB in Circulation</div>
+          <div style="margin-top:12px;font-size:12px;color:var(--muted2)">Shared across all players</div>
+        </div>
+      </div>
+      <div class="card" style="margin:0 0 16px;background:linear-gradient(135deg,#0a1628,#1a0a2e)">
+        <div class="section-label" style="margin-bottom:12px">Get ZombieCoins</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="text-align:center;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2)">
+            <div style="font-size:28px;margin-bottom:6px">🎁</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:4px">500 ZMB FREE</div>
+            <div style="font-size:12px;color:var(--muted2);margin-bottom:12px">One time starter bonus</div>
+            <button class="btn btn-green" style="width:100%" id="claim-starter-btn" onclick="claimStarter()">Claim Starter</button>
+          </div>
+          <div style="text-align:center;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius2)">
+            <div style="font-size:28px;margin-bottom:6px">💰</div>
+            <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:4px">100 ZMB</div>
+            <div style="font-size:12px;color:var(--muted2);margin-bottom:12px">for 0.01 ETH</div>
+            <button class="btn btn-amber" style="width:100%" onclick="buyZMB()">Buy ZMB</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-label">Battle History & Earnings</div>
+      <div class="card" style="margin:0;padding:0;overflow:hidden">
+        <div class="zmb-history" id="zmb-history">
+          <div class="empty" style="padding:20px"><span class="empty-icon" style="font-size:24px">🪙</span>Battle to earn ZMB!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <footer>CryptoZombies DApp · Local Ganache Network · CPSC-559 Midterm © 2026</footer>
+
+<!-- ══════════════════════════════════════════════ AUTO-BUY MODAL -->
+<div class="autobuy-overlay" id="autobuy-modal">
+  <div class="autobuy-modal">
+    <div class="autobuy-icon">🪙</div>
+    <h3>Not Enough ZMB!</h3>
+    <p>You need at least <strong style="color:var(--amber)">100 ZMB</strong> to battle.<br>Buy <strong style="color:var(--amber)">100 ZMB</strong> for <strong style="color:var(--green)">0.01 ETH</strong> to continue?</p>
+    <div id="autobuy-balance" style="font-size:13px;color:var(--muted2);margin-bottom:16px"></div>
+    <div class="autobuy-actions">
+      <button class="btn btn-ghost" onclick="closeAutoBuy()">Cancel</button>
+      <button class="btn btn-amber" onclick="autoBuyAndBattle()">💰 Buy & Battle</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════ BREED NAME MODAL -->
 <div class="modal-overlay" id="breed-modal">
@@ -688,8 +839,11 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px;border-t
 // GLOBALS
 // ═══════════════════════════════════════════════════
 let web3, zombieContract, kittyContract, marketContract, account;
+let zmbBalance = 0;
+let zmbHistory = [];
+let pendingBattleArgs = null;
 let myZombies = [], allZombies = [], graveyardZombies = [];
-const TABS = ['army','create','battle','kitty','market','transfer','leaderboard','graveyard','explore'];
+const TABS = ['army','create','battle','kitty','market','transfer','leaderboard','graveyard','explore','zmwallet'];
 
 // ═══════════════════════════════════════════════════
 // INIT
@@ -719,7 +873,7 @@ async function init() {
     }
 
     // Load ZombieMarketplace (extends ZombieOwnership)
-    const mRes  = await fetch('./build/contracts/ZombieMarketplace.json');
+    const mRes  = await fetch('./build/contracts/ZombieBattle.json');
     const mData = await mRes.json();
     const mNet  = mData.networks[netId];
     if (!mNet) { showAlert('global','Contracts not deployed. Run: truffle migrate --reset','error'); return; }
@@ -738,6 +892,10 @@ async function init() {
     populateSelects();
 
     window.ethereum.on('accountsChanged', a => { account = a[0]; init(); });
+
+    // Init ZMB
+    await refreshZMB();
+    await checkStarterClaim();
   } catch(e) { console.error(e); showAlert('global','Init failed: '+e.message,'error'); }
 }
 
@@ -1443,6 +1601,7 @@ function switchTab(name) {
   if (name === 'leaderboard') loadLeaderboard();
   if (name === 'graveyard')   loadGraveyard();
   if (name === 'explore')     loadAllZombies();
+  if (name === 'zmwallet')    { refreshZMB(); checkStarterClaim(); renderZMBHistory(); }
 }
 
 function showAlert(section, msg, type) {
@@ -1559,6 +1718,193 @@ function closeZombieModal(e) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeZombieModal();
 });
+
+
+// ═══════════════════════════════════════════════════
+// ZOMBIECOIN FUNCTIONS
+// ═══════════════════════════════════════════════════
+
+async function refreshZMB() {
+  if (!zombieContract || !account) return;
+  try {
+    zmbBalance = parseInt(await zombieContract.methods.getZombieCoins(account).call());
+    const totalSupply = parseInt(await zombieContract.methods.totalSupply().call());
+    document.getElementById('zmb-amount').textContent         = zmbBalance.toLocaleString();
+    document.getElementById('zmb-wallet-balance').textContent = zmbBalance.toLocaleString();
+    document.getElementById('zmb-total-supply').textContent   = totalSupply.toLocaleString();
+    document.getElementById('zmb-badge').style.display        = 'flex';
+    document.getElementById('bet-zmb-display').textContent    = zmbBalance.toLocaleString();
+  } catch(e) { console.warn('ZMB refresh:', e); }
+}
+
+async function checkStarterClaim() {
+  if (!zombieContract || !account) return;
+  try {
+    const claimed = await zombieContract.methods.hasClaimedStarter(account).call();
+    const btn     = document.getElementById('claim-starter-btn');
+    const status  = document.getElementById('zmb-starter-status');
+    if (claimed) {
+      if (btn) { btn.disabled = true; btn.textContent = '✓ Already Claimed'; }
+      if (status) status.textContent = '✓ Starter bonus claimed';
+    } else {
+      if (status) status.textContent = '🎁 500 ZMB starter available!';
+    }
+  } catch(e) { console.warn('Starter check:', e); }
+}
+
+async function claimStarter() {
+  try {
+    showAlert('zmwallet','<span class="spinner"></span> Claiming 500 ZMB…','info');
+    await zombieContract.methods.claimStarterCoins().send({ from: account });
+    showAlert('zmwallet','🎉 500 ZMB claimed!','success');
+    addZMBHistory('🎁 Starter Bonus', +500);
+    await refreshZMB();
+    await checkStarterClaim();
+  } catch(e) {
+    showAlert('zmwallet', e.message.includes('Already claimed') ? 'Already claimed your starter bonus!' : e.message, 'error');
+  }
+}
+
+async function buyZMB(amount) {
+  amount = amount || 1;
+  try {
+    const ethCost = web3.utils.toWei((0.01 * amount).toFixed(4), 'ether');
+    showAlert('zmwallet','<span class="spinner"></span> Buying '+(amount*100)+' ZMB…','info');
+    await zombieContract.methods.buyCoins().send({ from: account, value: ethCost });
+    showAlert('zmwallet','💰 '+(amount*100)+' ZMB purchased!','success');
+    addZMBHistory('💰 Purchased', +(amount*100));
+    await refreshZMB();
+  } catch(e) { showAlert('zmwallet', e.message, 'error'); }
+}
+
+function setBet(amount) {
+  document.getElementById('bet-amount').value = amount;
+}
+
+function setBetAll() {
+  document.getElementById('bet-amount').value = zmbBalance;
+}
+
+function addZMBHistory(label, amount) {
+  zmbHistory.unshift({ label, amount, time: new Date().toLocaleTimeString() });
+  if (zmbHistory.length > 20) zmbHistory.pop();
+  renderZMBHistory();
+}
+
+function renderZMBHistory() {
+  const div = document.getElementById('zmb-history');
+  if (!div) return;
+  if (zmbHistory.length === 0) {
+    div.innerHTML = '<div class="empty" style="padding:20px"><span class="empty-icon" style="font-size:24px">🪙</span>Battle to earn ZMB!</div>';
+    return;
+  }
+  div.innerHTML = zmbHistory.map(h => `
+    <div class="zmb-history-item">
+      <span>${h.label}</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span class="${h.amount > 0 ? 'zmb-pos' : 'zmb-neg'}">${h.amount > 0 ? '+' : ''}${h.amount} ZMB</span>
+        <span style="color:var(--muted);font-size:11px">${h.time}</span>
+      </span>
+    </div>`).join('');
+}
+
+// Auto-buy modal
+function showAutoBuy() {
+  document.getElementById('autobuy-balance').textContent = 'Your balance: ' + zmbBalance + ' ZMB';
+  document.getElementById('autobuy-modal').classList.add('show');
+}
+
+function closeAutoBuy() {
+  document.getElementById('autobuy-modal').classList.remove('show');
+  pendingBattleArgs = null;
+}
+
+async function autoBuyAndBattle() {
+  closeAutoBuy();
+  try {
+    const ethCost = web3.utils.toWei('0.01','ether');
+    showAlert('battle','<span class="spinner"></span> Buying 100 ZMB…','info');
+    await zombieContract.methods.buyCoins().send({ from: account, value: ethCost });
+    addZMBHistory('💰 Auto-purchased', +100);
+    await refreshZMB();
+    // Retry battle
+    await attackZombie();
+  } catch(e) { showAlert('battle', e.message, 'error'); }
+}
+
+// Override attackZombie to use attackWithBet
+const _originalAttack = attackZombie;
+attackZombie = async function() {
+  const attackerId = document.getElementById('attacker-select').value;
+  const targetId   = document.getElementById('target-id').value;
+  const betAmount  = parseInt(document.getElementById('bet-amount').value || 100);
+
+  if (!attackerId) { showAlert('battle','Select your zombie.','error'); return; }
+  if (targetId === '') { showAlert('battle','Enter enemy ID.','error'); return; }
+  if (attackerId === targetId) { showAlert('battle','Cannot attack yourself!','error'); return; }
+  if (betAmount < 100) { showAlert('battle','Minimum bet is 100 ZMB.','error'); return; }
+
+  // Check ZMB balance
+  await refreshZMB();
+  if (zmbBalance < betAmount) {
+    showAutoBuy();
+    return;
+  }
+
+  const resultDiv   = document.getElementById('battle-result');
+  resultDiv.className = ''; resultDiv.style.display = 'none';
+
+  const attackerBox = document.getElementById('attacker-box');
+  attackerBox.classList.add('attack-slash');
+  setTimeout(() => attackerBox.classList.remove('attack-slash'), 500);
+
+  showAlert('battle','<span class="spinner"></span> Battle in progress — betting '+betAmount+' ZMB…','info');
+
+  try {
+    const prevBal = zmbBalance;
+    await zombieContract.methods.attackWithBet(attackerId, targetId, betAmount).send({ from: account });
+    hideAlert('battle');
+
+    await refreshZMB();
+    const newBal  = zmbBalance;
+    const diff    = newBal - prevBal;
+    const won     = diff > 0;
+
+    addZMBHistory(won ? '⚔️ Battle Win' : '💀 Battle Loss', diff);
+
+    const targetBox = document.getElementById('target-box');
+    if (won) {
+      attackerBox.classList.add('victory-bounce','glow-pulse');
+      targetBox.classList.add('defeat-fall');
+      setTimeout(() => { attackerBox.classList.remove('victory-bounce','glow-pulse'); targetBox.classList.remove('defeat-fall'); }, 2000);
+    } else {
+      attackerBox.classList.add('battle-shake','battle-flash');
+      setTimeout(() => attackerBox.classList.remove('battle-shake','battle-flash'), 1000);
+    }
+
+    resultDiv.className = 'battle-result-box show ' + (won ? 'win' : 'loss');
+    document.getElementById('battle-emoji').textContent       = won ? '🏆' : '💀';
+    document.getElementById('battle-outcome-text').className  = 'result-text ' + (won ? 'win' : 'loss');
+    document.getElementById('battle-outcome-text').textContent = won ? 'VICTORY!' : 'DEFEAT';
+    document.getElementById('battle-detail').innerHTML = won
+      ? `You won <span style="color:var(--amber);font-weight:800">+${diff} ZMB</span>! New zombie spawned!`
+      : `You lost <span style="color:var(--red);font-weight:800">${Math.abs(diff)} ZMB</span>. Try again!`;
+
+    showAlert('battle',
+      won ? '🏆 Victory! +' + diff + ' ZMB earned!' : '💀 Defeated. -' + betAmount + ' ZMB lost.',
+      won ? 'success' : 'error');
+
+    await loadZombies();
+  } catch(e) {
+    const msg = e.message.includes('cooldown') || e.message.includes('ready') ? 'Zombie is on cooldown!'
+              : e.message.includes('Insufficient ZMB') ? 'Not enough ZMB! Buy more coins.'
+              : e.message.includes('onlyOwnerOf') ? "You don't own that zombie."
+              : e.message;
+    showAlert('battle', msg, 'error');
+    attackerBox.classList.add('battle-shake');
+    setTimeout(() => attackerBox.classList.remove('battle-shake'), 500);
+  }
+};
 
 </script>
 
