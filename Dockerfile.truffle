@@ -3,7 +3,7 @@ FROM node:18
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install && npm install -g truffle
+RUN npm install && npm install -g truffle && npm install dotenv
 
 COPY . .
 

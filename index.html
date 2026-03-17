@@ -1,387 +1,994 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>CryptoZombies DApp</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CryptoZombies DApp</title>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.7.5/dist/web3.min.js"></script>
+<style>
+  :root {
+    --bg:      #0a0e1a;
+    --surface: #111827;
+    --card:    #1a2235;
+    --border:  #2a3a55;
+    --green:   #22c55e;
+    --green2:  #16a34a;
+    --purple:  #7c3aed;
+    --purple2: #6d28d9;
+    --red:     #ef4444;
+    --amber:   #f59e0b;
+    --cyan:    #06b6d4;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --radius:  10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
 
-  <script src="https://cdn.jsdelivr.net/npm/web3@1.7.5/dist/web3.min.js"></script>
+  /* ── header ── */
+  header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  header h1 span { color: var(--green); }
+  #wallet-info { font-size: 13px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; }
+  #wallet-info b { color: var(--cyan); }
 
-  <style>
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 40px;
-    }
+  /* ── layout ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
 
-    .container {
-      max-width: 1000px;
-      margin: auto;
-    }
+  /* ── tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--surface); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
+  .tab-btn {
+    flex: 1; padding: 10px 8px; border: none; border-radius: 8px;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 13px; font-weight: 500; transition: all .2s;
+  }
+  .tab-btn.active { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
 
-    h1 {
-      margin-bottom: 20px;
-    }
+  /* ── cards ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--green); display: flex; align-items: center; gap: 8px; }
 
-    h2 {
-      margin-top: 40px;
-      margin-bottom: 20px;
-    }
+  /* ── forms ── */
+  .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 160px; }
+  label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  input, select {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 10px 12px; font-size: 14px; outline: none; width: 100%;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus { border-color: var(--green); }
+  input::placeholder { color: var(--muted); }
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      margin-bottom: 20px;
-    }
+  /* ── buttons ── */
+  .btn {
+    padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+    font-size: 14px; font-weight: 600; transition: all .2s; white-space: nowrap;
+  }
+  .btn-green  { background: var(--green);  color: #000; }
+  .btn-green:hover  { background: var(--green2); }
+  .btn-purple { background: var(--purple); color: #fff; }
+  .btn-purple:hover { background: var(--purple2); }
+  .btn-red    { background: var(--red);    color: #fff; }
+  .btn-red:hover    { background: #dc2626; }
+  .btn-amber  { background: var(--amber);  color: #000; }
+  .btn-amber:hover  { background: #d97706; }
+  .btn-cyan   { background: var(--cyan);   color: #000; }
+  .btn-cyan:hover   { background: #0891b2; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
 
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+  /* ── zombie grid ── */
+  .zombie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .zombie-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; text-align: center; transition: border-color .2s, transform .2s;
+    cursor: pointer; position: relative;
+  }
+  .zombie-card:hover { border-color: var(--green); transform: translateY(-2px); }
+  .zombie-card.selected { border-color: var(--green); box-shadow: 0 0 0 2px var(--green); }
+  .zombie-card h3 { font-size: 15px; margin: 10px 0 4px; font-weight: 600; }
+  .zombie-card .level { font-size: 12px; color: var(--amber); margin-bottom: 6px; font-weight: 600; }
+  .zombie-card .stats { font-size: 11px; color: var(--muted); display: flex; justify-content: center; gap: 12px; }
+  .zombie-card .stats span { display: flex; align-items: center; gap: 3px; }
+  .zombie-card .dna { font-size: 10px; color: var(--muted); margin-top: 6px; word-break: break-all; }
+  .zombie-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; background: var(--purple); color: #fff; border-radius: 4px; padding: 2px 6px; }
+  .zombie-id { position: absolute; top: 8px; left: 8px; font-size: 10px; color: var(--muted); }
 
-    input {
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      outline: none;
-      width: 240px;
-    }
+  /* ── alerts ── */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; display: none; }
+  .alert.show { display: block; }
+  .alert-success { background: #052e16; border: 1px solid #16a34a; color: #86efac; }
+  .alert-error   { background: #1c0a0a; border: 1px solid var(--red);  color: #fca5a5; }
+  .alert-info    { background: #0c1a2e; border: 1px solid var(--cyan); color: #67e8f9; }
 
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      background: #22c55e;
-      color: white;
-      cursor: pointer;
-      white-space: nowrap;
-    }
+  /* ── stat pill ── */
+  .stat-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; margin: 2px; }
 
-    button:hover {
-      background: #16a34a;
-    }
+  /* ── battle result ── */
+  #battle-result { text-align: center; padding: 20px; display: none; }
+  #battle-result.show { display: block; }
+  #battle-result .outcome { font-size: 48px; margin-bottom: 8px; }
+  #battle-result .outcome-text { font-size: 22px; font-weight: 700; }
+  #battle-result.win  .outcome-text { color: var(--green); }
+  #battle-result.loss .outcome-text { color: var(--red); }
 
-    .show-btn {
-      margin-bottom: 10px;
-    }
+  /* ── spinner ── */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-    .zombie-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-    }
+  /* ── search ── */
+  .search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .search-row input { flex: 1; }
 
-    .zombie-card {
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-      text-align: center;
-    }
+  /* ── section label ── */
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
 
-    .zombie-card h3 {
-      margin-top: 0;
-    }
+  /* ── empty state ── */
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
 
-    .dna {
-      font-size: 12px;
-      color: #94a3b8;
-      word-break: break-all;
-      margin-bottom: 10px;
-    }
+  /* ── all zombies toggle ── */
+  .view-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .view-toggle .btn { padding: 6px 14px; font-size: 12px; }
 
-    .level {
-      margin-top: 8px;
-      margin-bottom: 8px;
-    }
+  /* ── kitty card ── */
+  .kitty-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: inline-flex; align-items: center; gap: 12px; margin: 6px; cursor: pointer; transition: border-color .2s; }
+  .kitty-card:hover, .kitty-card.selected { border-color: var(--amber); }
+  .kitty-card svg { flex-shrink: 0; }
 
-    .stats {
-      margin-bottom: 12px;
-    }
-
-    .level-btn {
-      margin-bottom: 10px;
-    }
-
-    .empty-message {
-      color: #94a3b8;
-      margin-top: 10px;
-    }
-
-    .zombie-img {
-      width: 180px;
-      margin: 12px 0;
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  </style>
+  footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>🧟 CryptoZombies</h1>
 
-    <div class="controls">
-      <div class="control-group">
-        <input id="nameInput" placeholder="Zombie name">
-        <button onclick="createZombie()">Create Zombie</button>
-      </div>
+<header>
+  <h1>🧟 Crypto<span>Zombies</span></h1>
+  <div id="wallet-info">Not connected</div>
+</header>
 
-      <div class="control-group">
-        <input id="searchInput" placeholder="Search Zombies" oninput="searchZombies()">
-        <button onclick="searchZombies()">Search</button>
-      </div>
-    </div>
+<div class="container">
 
-    <button class="show-btn" onclick="loadZombies()">Show Zombies</button>
+  <!-- global alerts -->
+  <div id="alert-global" class="alert"></div>
 
-    <h2>Your Zombie Army</h2>
-
-    <div id="zombies" class="zombie-grid"></div>
-    <div id="emptyMessage" class="empty-message"></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('army')">⚔️ My Army</button>
+    <button class="tab-btn" onclick="switchTab('create')">➕ Create</button>
+    <button class="tab-btn" onclick="switchTab('battle')">🥊 Battle</button>
+    <button class="tab-btn" onclick="switchTab('kitty')">🐱 Feed on Kitty</button>
+    <button class="tab-btn" onclick="switchTab('transfer')">↔️ Transfer</button>
+    <button class="tab-btn" onclick="switchTab('explore')">🌍 Explore</button>
   </div>
 
-<h3>Zombie Actions</h3>
+  <!-- ═══════════════════════════════════════════════════════ MY ARMY -->
+  <div id="tab-army" class="tab-pane active">
+    <div class="card">
+      <h2>⚔️ Your Zombie Army</h2>
+      <div class="search-row">
+        <input id="search-input" placeholder="Search by name, DNA, level…" oninput="filterZombies()">
+        <button class="btn btn-green" onclick="loadZombies()">↻ Refresh</button>
+      </div>
+      <div class="view-toggle">
+        <button class="btn btn-cyan" onclick="loadZombies(false)">My Zombies</button>
+        <button class="btn btn-purple" onclick="loadZombies(true)">All Zombies</button>
+      </div>
+      <div id="alert-army" class="alert"></div>
+      <div id="zombie-grid" class="zombie-grid"></div>
+      <div id="army-empty" class="empty" style="display:none">No zombies found. Create one!</div>
+    </div>
+  </div>
 
-<input id="zombieId" placeholder="Zombie ID">
-<input id="targetAddress" placeholder="Transfer address">
-<button onclick="showOwner()">Show Owner</button>
-<button onclick="transferZombie()">Transfer Zombie</button>
+  <!-- ═══════════════════════════════════════════════════════ CREATE -->
+  <div id="tab-create" class="tab-pane">
+    <div class="card">
+      <h2>➕ Create a Zombie</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Each address can only create one zombie for free. Use battle victories to spawn more!</p>
+      <div id="alert-create" class="alert"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Zombie Name</label>
+          <input id="create-name" placeholder="e.g. DeathClaw X9" maxlength="32">
+        </div>
+        <button class="btn btn-green" onclick="createZombie()" style="align-self:flex-end">Create Zombie</button>
+      </div>
+      <div id="create-preview" style="margin-top:24px;text-align:center;display:none">
+        <div class="section-label">Preview</div>
+        <div id="preview-svg" style="display:inline-block;margin:12px 0"></div>
+        <div id="preview-info" style="font-size:13px;color:var(--muted)"></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- ═══════════════════════════════════════════════════════ BATTLE -->
+  <div id="tab-battle" class="tab-pane">
+    <div class="card">
+      <h2>🥊 Zombie Battle Arena</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Select your zombie, then pick an enemy. Win rate: 70%. Winning spawns a new zombie and levels you up!</p>
+      <div id="alert-battle" class="alert"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:16px">
+        <div>
+          <div class="section-label">Your Zombie (attacker)</div>
+          <div class="form-group">
+            <label>Select Your Zombie ID</label>
+            <select id="attacker-select" onchange="updateBattlePreview()"><option value="">-- choose --</option></select>
+          </div>
+          <div id="attacker-preview" style="margin-top:10px;text-align:center"></div>
+        </div>
+        <div>
+          <div class="section-label">Enemy Zombie (target)</div>
+          <div class="form-group">
+            <label>Enemy Zombie ID</label>
+            <input id="target-id" type="number" min="0" placeholder="Enter zombie ID" oninput="updateTargetPreview()">
+          </div>
+          <div id="target-preview" style="margin-top:10px;text-align:center"></div>
+        </div>
+      </div>
+      <div id="battle-result">
+        <div class="outcome" id="battle-emoji"></div>
+        <div class="outcome-text" id="battle-outcome-text"></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:8px" id="battle-detail"></div>
+      </div>
+      <div style="text-align:center">
+        <button class="btn btn-red" style="font-size:16px;padding:12px 32px" onclick="attackZombie()">⚔️ ATTACK!</button>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    let zombieArmy = [];
-    let web3;
-    let contract;
-    let account;
+  <!-- ═══════════════════════════════════════════════════════ KITTY -->
+  <div id="tab-kitty" class="tab-pane">
+    <div class="card">
+      <h2>🐱 Feed on a CryptoKitty</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Feeding a zombie on a kitty mutates its DNA and spawns a new zombie with kitty genes (last 2 DNA digits = 99).</p>
+      <div id="alert-kitty" class="alert"></div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group">
+          <label>Your Zombie ID</label>
+          <select id="kitty-zombie-select"><option value="">-- choose --</option></select>
+        </div>
+      </div>
+      <div class="section-label">Available Kitties (pre-minted locally)</div>
+      <div id="kitty-list" style="margin-bottom:16px">Loading kitties…</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Or enter Kitty ID manually</label>
+          <input id="kitty-id-manual" type="number" min="0" value="0" placeholder="Kitty ID">
+        </div>
+        <button class="btn btn-amber" onclick="feedOnKitty()">🐱 Feed!</button>
+      </div>
+    </div>
+  </div>
 
-    const IMAGE_SRC = "./zommod.png";
+  <!-- ═══════════════════════════════════════════════════════ TRANSFER -->
+  <div id="tab-transfer" class="tab-pane">
+    <div class="card">
+      <h2>↔️ Transfer a Zombie</h2>
+      <div id="alert-transfer" class="alert"></div>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group">
+          <label>Zombie ID</label>
+          <input id="transfer-zombie-id" type="number" min="0" placeholder="e.g. 0">
+        </div>
+        <div class="form-group" style="flex:2">
+          <label>Recipient Address</label>
+          <input id="transfer-to" placeholder="0x…">
+        </div>
+        <button class="btn btn-purple" onclick="transferZombie()">Transfer</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🔍 Look Up Zombie Owner</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Zombie ID</label>
+          <input id="owner-zombie-id" type="number" min="0" placeholder="e.g. 0">
+        </div>
+        <button class="btn btn-cyan" onclick="lookupOwner()">Look Up</button>
+      </div>
+      <div id="owner-result" style="margin-top:12px;font-size:13px;display:none">
+        <span class="section-label">Owner: </span>
+        <span id="owner-address" style="color:var(--cyan);font-family:monospace"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>✅ Approve Zombie Transfer</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Zombie ID</label>
+          <input id="approve-zombie-id" type="number" min="0" placeholder="e.g. 0">
+        </div>
+        <div class="form-group" style="flex:2">
+          <label>Approved Address</label>
+          <input id="approve-address" placeholder="0x…">
+        </div>
+        <button class="btn btn-amber" onclick="approveZombie()">Approve</button>
+      </div>
+    </div>
+  </div>
 
-    async function init() {
-      try {
-        if (!window.ethereum) {
-          alert("MetaMask not detected.");
-          return;
-        }
+  <!-- ═══════════════════════════════════════════════════════ EXPLORE -->
+  <div id="tab-explore" class="tab-pane">
+    <div class="card">
+      <h2>🌍 Explorer — All Zombies</h2>
+      <div id="alert-explore" class="alert"></div>
+      <div class="search-row">
+        <input id="explore-search" placeholder="Search all zombies…" oninput="filterExplore()">
+        <button class="btn btn-green" onclick="loadAllZombies()">↻ Load All</button>
+      </div>
+      <div id="explore-grid" class="zombie-grid"></div>
+      <div id="explore-empty" class="empty" style="display:none">No zombies on chain yet.</div>
+    </div>
+  </div>
 
-        web3 = new Web3(window.ethereum);
-        await window.ethereum.request({ method: "eth_requestAccounts" });
+</div>
 
-        const accounts = await web3.eth.getAccounts();
-        account = accounts[0];
+<footer>CryptoZombies DApp · Local Ganache Network · CPSC-559 Midterm © 2026</footer>
 
-        const response = await fetch("./build/contracts/ZombieOwnership.json");
-        const data = await response.json();
+<script>
+// ═══════════════════════════════════════════════════════════════
+// GLOBALS
+// ═══════════════════════════════════════════════════════════════
+let web3, zombieContract, kittyContract, account;
+let myZombies    = [];   // [{id, name, dna, level, winCount, lossCount, readyTime}]
+let allZombies   = [];
+let kittyAddress = null;
 
-        const currentNetworkId = await web3.eth.net.getId();
-        const deployedNetwork = data.networks[currentNetworkId];
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener("load", init);
 
-        if (!deployedNetwork) {
-          alert("Contract not found on the current network. Make sure MetaMask is on Ganache and contracts are redeployed.");
-          return;
-        }
+async function init() {
+  if (!window.ethereum) { showAlert("global", "MetaMask not detected. Please install it.", "error"); return; }
+  try {
+    web3 = new Web3(window.ethereum);
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await web3.eth.getAccounts();
+    account = accounts[0];
 
-        contract = new web3.eth.Contract(data.abi, deployedNetwork.address);
+    const netId = await web3.eth.net.getId();
+    document.getElementById("wallet-info").innerHTML =
+      `<b>${account.slice(0,6)}…${account.slice(-4)}</b> · Chain <b>${netId}</b>`;
 
-        await loadZombies();
-      } catch (err) {
-        console.error("Init error:", err);
-        alert("Init failed. Open browser console.");
+    // Load ZombieOwnership
+    const zRes  = await fetch("./build/contracts/ZombieOwnership.json");
+    const zData = await zRes.json();
+    const zNet  = zData.networks[netId];
+    if (!zNet) { showAlert("global","Contract not deployed on this network. Run: truffle migrate --reset","error"); return; }
+    zombieContract = new web3.eth.Contract(zData.abi, zNet.address);
+
+    // Load LocalKitty
+    try {
+      const kRes  = await fetch("./build/contracts/LocalKitty.json");
+      const kData = await kRes.json();
+      const kNet  = kData.networks[netId];
+      if (kNet) {
+        kittyContract = new web3.eth.Contract(kData.abi, kNet.address);
+        kittyAddress  = kNet.address;
+        loadKitties();
       }
+    } catch(e) { console.warn("LocalKitty not found:", e); }
+
+    await loadZombies();
+    populateSelects();
+
+    // Listen for new zombies
+    zombieContract.events.NewZombie({}, (err, evt) => {
+      if (!err) { loadZombies(); showAlert("army", `New zombie spawned: ${evt.returnValues.name}!`, "success"); }
+    });
+
+    // MetaMask account change
+    window.ethereum.on("accountsChanged", accs => { account = accs[0]; init(); });
+
+  } catch(e) { console.error(e); showAlert("global", "Init failed: " + e.message, "error"); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ZOMBIE DNA → SVG AVATAR
+// ═══════════════════════════════════════════════════════════════
+function zombieSVG(dna, size) {
+  size = size || 120;
+  const d = String(dna).padStart(16, "0");
+
+  const headType   = parseInt(d.slice(0,2))  % 6;
+  const eyeType    = parseInt(d.slice(2,4))  % 8;
+  const mouthType  = parseInt(d.slice(4,6))  % 6;
+  const skinH      = parseInt(d.slice(6,8))  % 60 + 80;   // hue 80-140 (green range)
+  const skinS      = parseInt(d.slice(8,10)) % 30 + 40;   // sat 40-70
+  const skinL      = parseInt(d.slice(10,12))% 15 + 25;   // light 25-40 (dark)
+  const accentH    = (skinH + 140) % 360;
+  const shirtType  = parseInt(d.slice(12,14))% 5;
+  const isKitty    = d.slice(14,16) === "99";
+
+  const skin    = `hsl(${skinH},${skinS}%,${skinL}%)`;
+  const skinLt  = `hsl(${skinH},${skinS}%,${skinL+12}%)`;
+  const skinDk  = `hsl(${skinH},${skinS}%,${skinL-10}%)`;
+  const eyeGlow = ["#ff2020","#00ff66","#ff00ff","#00cfff","#ffaa00","#ff6600","#aa00ff","#00ffcc"][eyeType];
+  const shirtColors = ["#4a0080","#800020","#003366","#1a4d00","#4d3300"];
+  const shirt   = shirtColors[shirtType];
+  const shirtLt = shirt + "cc";
+
+  // Head shapes
+  const heads = [
+    // 0: classic round
+    `<ellipse cx="60" cy="46" rx="30" ry="34" fill="${skin}"/>
+     <ellipse cx="60" cy="46" rx="28" ry="32" fill="none" stroke="${skinDk}" stroke-width="0.5" opacity="0.4"/>`,
+    // 1: square jaw
+    `<rect x="30" y="16" width="60" height="62" rx="10" fill="${skin}"/>
+     <rect x="32" y="18" width="56" height="58" rx="8" fill="none" stroke="${skinDk}" stroke-width="0.5" opacity="0.4"/>`,
+    // 2: tall narrow
+    `<ellipse cx="60" cy="44" rx="24" ry="36" fill="${skin}"/>`,
+    // 3: wide flat
+    `<ellipse cx="60" cy="48" rx="36" ry="28" fill="${skin}"/>`,
+    // 4: angular
+    `<polygon points="60,12 92,30 88,70 32,70 28,30" fill="${skin}"/>
+     <polygon points="60,14 90,31 86,68 34,68 30,31" fill="none" stroke="${skinDk}" stroke-width="0.5" opacity="0.3"/>`,
+    // 5: lumpy mutant
+    `<ellipse cx="60" cy="46" rx="30" ry="32" fill="${skin}"/>
+     <ellipse cx="36" cy="34" rx="8" ry="7" fill="${skin}"/>
+     <ellipse cx="84" cy="30" rx="6" ry="5" fill="${skin}"/>`
+  ];
+
+  // Scary eyes
+  const eyes = [
+    // 0: glowing circles
+    `<circle cx="46" cy="44" r="9" fill="#110000"/>
+     <circle cx="74" cy="44" r="9" fill="#110000"/>
+     <circle cx="46" cy="44" r="6" fill="${eyeGlow}" opacity="0.9"/>
+     <circle cx="74" cy="44" r="6" fill="${eyeGlow}" opacity="0.9"/>
+     <circle cx="46" cy="44" r="2" fill="#fff"/>
+     <circle cx="74" cy="44" r="2" fill="#fff"/>
+     <circle cx="44" cy="42" r="1" fill="#ffffff88"/>
+     <circle cx="72" cy="42" r="1" fill="#ffffff88"/>`,
+    // 1: X eyes
+    `<rect x="38" y="38" width="16" height="12" rx="3" fill="#000"/>
+     <rect x="66" y="38" width="16" height="12" rx="3" fill="#000"/>
+     <line x1="40" y1="40" x2="52" y2="48" stroke="${eyeGlow}" stroke-width="2.5" stroke-linecap="round"/>
+     <line x1="52" y1="40" x2="40" y2="48" stroke="${eyeGlow}" stroke-width="2.5" stroke-linecap="round"/>
+     <line x1="68" y1="40" x2="80" y2="48" stroke="${eyeGlow}" stroke-width="2.5" stroke-linecap="round"/>
+     <line x1="80" y1="40" x2="68" y2="48" stroke="${eyeGlow}" stroke-width="2.5" stroke-linecap="round"/>`,
+    // 2: spiral eyes
+    `<circle cx="46" cy="44" r="10" fill="#0a0a0a"/>
+     <circle cx="74" cy="44" r="10" fill="#0a0a0a"/>
+     <circle cx="46" cy="44" r="7"  fill="none" stroke="${eyeGlow}" stroke-width="1.5" opacity="0.8"/>
+     <circle cx="46" cy="44" r="4"  fill="none" stroke="${eyeGlow}" stroke-width="1.5" opacity="0.9"/>
+     <circle cx="46" cy="44" r="1.5" fill="${eyeGlow}"/>
+     <circle cx="74" cy="44" r="7"  fill="none" stroke="${eyeGlow}" stroke-width="1.5" opacity="0.8"/>
+     <circle cx="74" cy="44" r="4"  fill="none" stroke="${eyeGlow}" stroke-width="1.5" opacity="0.9"/>
+     <circle cx="74" cy="44" r="1.5" fill="${eyeGlow}"/>`,
+    // 3: slit pupils
+    `<ellipse cx="46" cy="44" rx="9" ry="9" fill="#111"/>
+     <ellipse cx="74" cy="44" rx="9" ry="9" fill="#111"/>
+     <ellipse cx="46" cy="44" rx="8" ry="8" fill="${eyeGlow}" opacity="0.7"/>
+     <ellipse cx="74" cy="44" rx="8" ry="8" fill="${eyeGlow}" opacity="0.7"/>
+     <ellipse cx="46" cy="44" rx="2" ry="7" fill="#000"/>
+     <ellipse cx="74" cy="44" rx="2" ry="7" fill="#000"/>`,
+    // 4: triangle eyes
+    `<polygon points="46,36 56,52 36,52" fill="#000"/>
+     <polygon points="74,36 84,52 64,52" fill="#000"/>
+     <polygon points="46,38 54,50 38,50" fill="${eyeGlow}" opacity="0.8"/>
+     <polygon points="74,38 82,50 66,50" fill="${eyeGlow}" opacity="0.8"/>`,
+    // 5: half closed menacing
+    `<ellipse cx="46" cy="46" rx="9" ry="9" fill="#0a0a0a"/>
+     <ellipse cx="74" cy="46" rx="9" ry="9" fill="#0a0a0a"/>
+     <ellipse cx="46" cy="46" rx="7" ry="7" fill="${eyeGlow}" opacity="0.85"/>
+     <ellipse cx="74" cy="46" rx="7" ry="7" fill="${eyeGlow}" opacity="0.85"/>
+     <rect x="37" y="37" width="18" height="9" fill="${skin}" rx="1"/>
+     <rect x="65" y="37" width="18" height="9" fill="${skin}" rx="1"/>
+     <line x1="37" y1="46" x2="55" y2="46" stroke="${skinDk}" stroke-width="1"/>
+     <line x1="65" y1="46" x2="83" y2="46" stroke="${skinDk}" stroke-width="1"/>`,
+    // 6: glowing ring eyes
+    `<circle cx="46" cy="44" r="10" fill="#000" opacity="0.9"/>
+     <circle cx="74" cy="44" r="10" fill="#000" opacity="0.9"/>
+     <circle cx="46" cy="44" r="8" fill="none" stroke="${eyeGlow}" stroke-width="3" opacity="0.9"/>
+     <circle cx="74" cy="44" r="8" fill="none" stroke="${eyeGlow}" stroke-width="3" opacity="0.9"/>
+     <circle cx="46" cy="44" r="3" fill="${eyeGlow}"/>
+     <circle cx="74" cy="44" r="3" fill="${eyeGlow}"/>`,
+    // 7: wide shocked eyes
+    `<ellipse cx="46" cy="44" rx="11" ry="10" fill="#fff"/>
+     <ellipse cx="74" cy="44" rx="11" ry="10" fill="#fff"/>
+     <circle cx="46" cy="44" r="6" fill="${eyeGlow}"/>
+     <circle cx="74" cy="44" r="6" fill="${eyeGlow}"/>
+     <circle cx="46" cy="44" r="3" fill="#000"/>
+     <circle cx="74" cy="44" r="3" fill="#000"/>
+     <circle cx="44" cy="42" r="1.5" fill="#fff"/><circle cx="72" cy="42" r="1.5" fill="#fff"/>`
+  ];
+
+  // Mouths
+  const mouths = [
+    // 0: jagged teeth
+    `<path d="M42,64 Q60,72 78,64" fill="none" stroke="${skinDk}" stroke-width="1.5"/>
+     <rect x="48" y="63" width="5" height="7" rx="1" fill="#e8e8e8"/>
+     <rect x="55" y="63" width="5" height="8" rx="1" fill="#e8e8e8"/>
+     <rect x="62" y="63" width="5" height="7" rx="1" fill="#e8e8e8"/>
+     <rect x="69" y="63" width="4" height="6" rx="1" fill="#e8e8e8"/>`,
+    // 1: stitched mouth
+    `<line x1="42" y1="67" x2="78" y2="67" stroke="${skinDk}" stroke-width="1.5"/>
+     <line x1="48" y1="63" x2="48" y2="71" stroke="${skinDk}" stroke-width="1.5"/>
+     <line x1="55" y1="62" x2="55" y2="72" stroke="${skinDk}" stroke-width="1.5"/>
+     <line x1="62" y1="62" x2="62" y2="72" stroke="${skinDk}" stroke-width="1.5"/>
+     <line x1="69" y1="63" x2="69" y2="71" stroke="${skinDk}" stroke-width="1.5"/>
+     <line x1="76" y1="64" x2="76" y2="70" stroke="${skinDk}" stroke-width="1.5"/>`,
+    // 2: snarl
+    `<path d="M40,62 Q50,72 60,65 Q70,72 80,62" fill="${skinDk}" opacity="0.6"/>
+     <path d="M44,63 L50,68 L56,63" fill="#c8c8c8"/>
+     <path d="M64,63 L70,68 L76,63" fill="#c8c8c8"/>`,
+    // 3: open scream
+    `<ellipse cx="60" cy="67" rx="14" ry="8" fill="#1a0000"/>
+     <ellipse cx="60" cy="63" rx="14" ry="4" fill="${skin}"/>
+     <rect x="50" y="60" width="5" height="6" rx="1" fill="#ddd"/>
+     <rect x="57" y="60" width="6" height="7" rx="1" fill="#ddd"/>
+     <rect x="65" y="60" width="5" height="6" rx="1" fill="#ddd"/>`,
+    // 4: smirk
+    `<path d="M44,65 Q55,75 72,62" fill="none" stroke="${skinDk}" stroke-width="2" stroke-linecap="round"/>
+     <rect x="58" y="63" width="4" height="6" rx="1" fill="#ddd"/>
+     <rect x="64" y="62" width="4" height="5" rx="1" fill="#ddd"/>`,
+    // 5: fangs
+    `<path d="M42,63 Q60,73 78,63" fill="#1a0000" opacity="0.8"/>
+     <polygon points="50,63 54,63 52,72" fill="#fff"/>
+     <polygon points="58,63 62,63 60,74" fill="#fff"/>
+     <polygon points="66,63 70,63 68,72" fill="#fff"/>`
+  ];
+
+  // Scars / details based on DNA
+  const scarIdx = parseInt(d.slice(1,3)) % 4;
+  const scars = [
+    `<line x1="50" y1="34" x2="44" y2="52" stroke="${skinDk}" stroke-width="1.5" opacity="0.7"/>`,
+    `<path d="M72,30 L68,38 L74,42" fill="none" stroke="${skinDk}" stroke-width="1.5" opacity="0.7"/>`,
+    `<line x1="38" y1="50" x2="46" y2="58" stroke="${skinDk}" stroke-width="2" opacity="0.6"/>
+     <line x1="40" y1="50" x2="48" y2="58" stroke="${skinDk}" stroke-width="1" opacity="0.4"/>`,
+    `<circle cx="55" cy="38" r="3" fill="${skinDk}" opacity="0.5"/>
+     <circle cx="66" cy="35" r="2" fill="${skinDk}" opacity="0.4"/>`
+  ];
+
+  // Kitty ears
+  const kittyEars = isKitty ? `
+    <polygon points="30,28 20,8 42,18" fill="${skin}"/>
+    <polygon points="90,28 100,8 78,18" fill="${skin}"/>
+    <polygon points="30,28 23,12 38,20" fill="#ff9999" opacity="0.8"/>
+    <polygon points="90,28 97,12 82,20" fill="#ff9999" opacity="0.8"/>` : `
+    <polygon points="30,28 22,10 40,22" fill="${skin}"/>
+    <polygon points="90,28 98,10 80,22" fill="${skin}"/>
+    <polygon points="30,28 25,14 37,21" fill="${skinDk}" opacity="0.5"/>
+    <polygon points="90,28 95,14 83,21" fill="${skinDk}" opacity="0.5"/>`;
+
+  // Body / shirt
+  const bodyParts = `
+    <ellipse cx="60" cy="82" rx="20" ry="8" fill="${shirt}"/>
+    <rect x="40" y="80" width="40" height="32" rx="4" fill="${shirt}"/>
+    <rect x="40" y="80" width="40" height="8" fill="${shirtLt}" opacity="0.4"/>
+    <rect x="40" y="80" width="20" height="32" rx="4" fill="${shirtLt}" opacity="0.15"/>
+    <rect x="57" y="80" width="6" height="32" fill="${skinDk}" opacity="0.1"/>
+    <rect x="38" y="80" width="12" height="28" rx="5" fill="${shirt}"/>
+    <rect x="70" y="80" width="12" height="28" rx="5" fill="${shirt}"/>
+    <ellipse cx="44" cy="109" rx="7" ry="5" fill="${skin}"/>
+    <ellipse cx="76" cy="109" rx="7" ry="5" fill="${skin}"/>
+    <path d="M36,108 Q40,114 44,112 Q46,116 50,112" fill="none" stroke="${skinDk}" stroke-width="1" opacity="0.5"/>
+    <path d="M84,108 Q80,114 76,112 Q74,116 70,112" fill="none" stroke="${skinDk}" stroke-width="1" opacity="0.5"/>
+    <rect x="47" y="112" width="13" height="20" rx="3" fill="#1a1a2e"/>
+    <rect x="60" y="112" width="13" height="20" rx="3" fill="#16213e"/>`;
+
+  // Neck
+  const neck = `<rect x="52" y="76" width="16" height="10" rx="3" fill="${skin}"/>
+    <line x1="56" y1="76" x2="56" y2="86" stroke="${skinDk}" stroke-width="0.5" opacity="0.4"/>
+    <line x1="64" y1="76" x2="64" y2="86" stroke="${skinDk}" stroke-width="0.5" opacity="0.4"/>`;
+
+  // Glow effect under eyes
+  const eyeGlowFilter = `<ellipse cx="46" cy="44" rx="12" ry="10" fill="${eyeGlow}" opacity="0.08"/>
+    <ellipse cx="74" cy="44" rx="12" ry="10" fill="${eyeGlow}" opacity="0.08"/>`;
+
+  // Kitty DNA badge
+  const kittyBadge = isKitty
+    ? `<rect x="28" y="126" width="64" height="14" rx="4" fill="#4a0030" opacity="0.9"/>
+       <text x="60" y="136" text-anchor="middle" font-size="8" fill="#ffb6c1" font-family="monospace">✦ KITTY DNA</text>`
+    : "";
+
+  const bgGrad = `<defs>
+    <radialGradient id="bg${dna.toString().slice(-4)}" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="hsl(${skinH},20%,12%)"/>
+      <stop offset="100%" stop-color="#060810"/>
+    </radialGradient>
+  </defs>`;
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+    ${bgGrad}
+    <rect width="120" height="140" rx="12" fill="url(#bg${dna.toString().slice(-4)})"/>
+    <rect width="120" height="140" rx="12" fill="none" stroke="hsl(${skinH},30%,20%)" stroke-width="1" opacity="0.5"/>
+    ${bodyParts}
+    ${neck}
+    ${kittyEars}
+    <g>${heads[headType]}</g>
+    ${eyeGlowFilter}
+    ${eyes[eyeType]}
+    ${mouths[mouthType]}
+    ${scars[scarIdx]}
+    ${kittyBadge}
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOAD ZOMBIES
+// ═══════════════════════════════════════════════════════════════
+async function loadZombies(showAll) {
+  if (!zombieContract) return;
+  const grid  = document.getElementById("zombie-grid");
+  const empty = document.getElementById("army-empty");
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span> Loading…</div>`;
+
+  try {
+    let ids = [];
+    if (showAll) {
+      ids = await getAllZombieIds();
+    } else {
+      ids = await zombieContract.methods.getZombiesByOwner(account).call();
     }
 
-    window.addEventListener("load", init);
-
-    async function createZombie() {
-      try {
-        const name = document.getElementById("nameInput").value.trim();
-
-        if (!name) {
-          alert("Please enter a zombie name.");
-          return;
-        }
-
-        await contract.methods.createRandomZombie(name).send({ from: account });
-
-        document.getElementById("nameInput").value = "";
-        await loadZombies();
-      } catch (err) {
-        console.error("Create zombie error:", err);
-        alert("Create zombie failed. Open browser console.");
-      }
-    }
-
-    async function loadZombies() {
-      try {
-        if (!contract || !account) return;
-
-        const ids = await contract.methods.getZombiesByOwner(account).call();
-
-        zombieArmy = [];
-        document.getElementById("zombies").innerHTML = "";
-        document.getElementById("emptyMessage").innerText = "";
-
-        for (let i = 0; i < ids.length; i++) {
-          const zombie = await contract.methods.zombies(ids[i]).call();
-
-          zombieArmy.push({
-            id: ids[i],
-            name: zombie.name,
-            dna: zombie.dna,
-            level: zombie.level,
-            winCount: zombie.winCount,
-            lossCount: zombie.lossCount
-          });
-        }
-
-        renderZombieList(zombieArmy);
-
-        if (ids.length === 0) {
-          document.getElementById("emptyMessage").innerText = "No zombies found.";
-        }
-      } catch (err) {
-        console.error("Load zombies error:", err);
-        alert("Load zombies failed. Open browser console.");
-      }
-    }
-
-    function renderZombieList(list) {
-      const zombiesContainer = document.getElementById("zombies");
-      zombiesContainer.innerHTML = "";
-
-      list.forEach((zombie) => {
-        displayZombie(zombie);
+    myZombies = [];
+    for (let i = 0; i < ids.length; i++) {
+      const z = await zombieContract.methods.zombies(ids[i]).call();
+      const owner = await zombieContract.methods.zombieToOwner(ids[i]).call();
+      myZombies.push({
+        id: parseInt(ids[i]), name: z.name, dna: z.dna,
+        level: parseInt(z.level), winCount: parseInt(z.winCount),
+        lossCount: parseInt(z.lossCount), readyTime: parseInt(z.readyTime),
+        owner
       });
     }
 
-    function displayZombie(zombie) {
-      const card = document.createElement("div");
-      card.className = "zombie-card";
+    renderZombieGrid(myZombies, "zombie-grid");
+    empty.style.display = myZombies.length === 0 ? "block" : "none";
+    populateSelects();
+  } catch(e) { showAlert("army", "Error loading zombies: " + e.message, "error"); grid.innerHTML = ""; }
+}
 
-      card.innerHTML = `
-        <h3>${zombie.name}</h3>
+async function getAllZombieIds() {
+  const ids = [];
+  let i = 0;
+  while (true) {
+    try {
+      await zombieContract.methods.zombies(i).call();
+      ids.push(i);
+      i++;
+      if (i > 200) break; // safety cap
+    } catch(e) { break; }
+  }
+  return ids;
+}
 
-        <img src="${IMAGE_SRC}" class="zombie-img" alt="Zombie">
+function renderZombieGrid(list, gridId) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = "";
+  if (!list || list.length === 0) { grid.innerHTML = ""; return; }
 
-        <div class="dna">DNA: ${zombie.dna}</div>
-
-        <div class="level">Level: ${zombie.level}</div>
-
-        <div class="stats">
-          Wins: ${zombie.winCount} | Losses: ${zombie.lossCount}
-        </div>
-
-        <button class="level-btn" onclick="levelUp(${zombie.id})">
-          Level Up
-        </button>
-
-        <button onclick="randomizeColor(this)">
-          Randomize Color
-        </button>
-      `;
-
-      document.getElementById("zombies").appendChild(card);
-    }
-
-    async function levelUp(id) {
-      try {
-  await contract.methods.levelUp(id).send({
-    from: account,
-    value: web3.utils.toWei("0.001", "ether")
+  list.forEach(z => {
+    const isReady   = Date.now()/1000 > z.readyTime;
+    const isMine    = z.owner && z.owner.toLowerCase() === account.toLowerCase();
+    const div = document.createElement("div");
+    div.className = "zombie-card";
+    div.innerHTML = `
+      <span class="zombie-id">#${z.id}</span>
+      ${isMine ? '<span class="zombie-badge">Mine</span>' : ''}
+      ${zombieSVG(z.dna, 110)}
+      <h3>${z.name}</h3>
+      <div class="level">Level ${z.level} ${isReady ? '✅' : '⏳ Cooldown'}</div>
+      <div class="stats">
+        <span>🏆 ${z.winCount}</span>
+        <span>💀 ${z.lossCount}</span>
+      </div>
+      <div class="dna">DNA: ${z.dna}</div>
+      <div style="margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+        ${isMine ? `<button class="btn btn-amber" style="font-size:11px;padding:5px 10px" onclick="levelUpZombie(${z.id})">⬆ Level Up</button>` : ''}
+        <button class="btn btn-cyan" style="font-size:11px;padding:5px 10px" onclick="selectForBattle(${z.id})">⚔️ Battle</button>
+      </div>`;
+    grid.appendChild(div);
   });
-
-  await loadZombies();
-} catch (err) {
-  console.error("Level up error:", err);
-  alert("Level up failed. Open browser console.");
-}
-    }
-
-    function searchZombies() {
-      const query = document.getElementById("searchInput").value.toLowerCase().trim();
-      document.getElementById("emptyMessage").innerText = "";
-
-      if (query === "") {
-        renderZombieList(zombieArmy);
-
-        if (zombieArmy.length === 0) {
-          document.getElementById("emptyMessage").innerText = "No zombies found.";
-        }
-        return;
-      }
-
-      const filtered = zombieArmy.filter((zombie) =>
-        zombie.name.toLowerCase().includes(query) ||
-        zombie.dna.toString().includes(query) ||
-        zombie.level.toString().includes(query)
-      );
-
-      renderZombieList(filtered);
-
-      if (filtered.length === 0) {
-        document.getElementById("emptyMessage").innerText = "No matches found.";
-      }
-    }
-
-
-
-async function showOwner(){
-
-  try{
-    const id = document.getElementById("zombieId").value;
-
-    const owner = await contract.methods.ownerOf(id).call();
-
-    alert("Owner of zombie " + id + " is " + owner);
-
-  }catch(err){
-    console.error(err);
-    alert("Failed to get owner");
-  }
-
 }
 
-async function transferZombie(){
+function filterZombies() {
+  const q = document.getElementById("search-input").value.toLowerCase();
+  const filtered = myZombies.filter(z =>
+    z.name.toLowerCase().includes(q) ||
+    String(z.dna).includes(q) ||
+    String(z.level).includes(q)
+  );
+  renderZombieGrid(filtered, "zombie-grid");
+}
 
-  try{
-    const id = document.getElementById("zombieId").value;
-    const address = document.getElementById("targetAddress").value;
-
-    if(!web3.utils.isAddress(address)){
-      alert("Invalid address");
-      return;
-    }
-
-    await contract.methods.transferFrom(account,address,id)
-      .send({from:account});
-
-    alert("Zombie transferred!");
-
+// ═══════════════════════════════════════════════════════════════
+// CREATE ZOMBIE
+// ═══════════════════════════════════════════════════════════════
+async function createZombie() {
+  const name = document.getElementById("create-name").value.trim();
+  if (!name) { showAlert("create", "Please enter a name.", "error"); return; }
+  try {
+    showAlert("create", `<span class="spinner"></span> Creating ${name}…`, "info");
+    await zombieContract.methods.createRandomZombie(name).send({ from: account });
+    showAlert("create", `${name} created successfully! 🎉`, "success");
+    document.getElementById("create-name").value = "";
     await loadZombies();
-
-  }catch(err){
-    console.error(err);
-    alert("Transfer failed");
+    switchTab("army");
+  } catch(e) {
+    const msg = e.message.includes("revert") ? "You already own a zombie!" : e.message;
+    showAlert("create", msg, "error");
   }
-
 }
 
+document.getElementById("create-name").addEventListener("input", function() {
+  const name = this.value.trim();
+  const preview = document.getElementById("create-preview");
+  if (name.length >= 2) {
+    const fakeDna = BigInt("0x" + [...name].map(c=>c.charCodeAt(0).toString(16).padStart(2,"0")).join("")).toString().slice(0,16).padStart(16,"1");
+    document.getElementById("preview-svg").innerHTML  = zombieSVG(fakeDna, 120);
+    document.getElementById("preview-info").textContent = "Approximate preview — actual DNA generated on-chain";
+    preview.style.display = "block";
+  } else {
+    preview.style.display = "none";
+  }
+});
 
-window.addEventListener("load",init)
+// ═══════════════════════════════════════════════════════════════
+// LEVEL UP
+// ═══════════════════════════════════════════════════════════════
+async function levelUpZombie(id) {
+  try {
+    showAlert("army", `<span class="spinner"></span> Levelling up zombie #${id}…`, "info");
+    await zombieContract.methods.levelUp(id).send({ from: account, value: web3.utils.toWei("0.001","ether") });
+    showAlert("army", `Zombie #${id} levelled up! 🎉`, "success");
+    loadZombies();
+  } catch(e) { showAlert("army", e.message, "error"); }
+}
 
+// ═══════════════════════════════════════════════════════════════
+// BATTLE
+// ═══════════════════════════════════════════════════════════════
+function populateSelects() {
+  const mine = myZombies.filter(z => z.owner && z.owner.toLowerCase() === account.toLowerCase());
+  ["attacker-select","kitty-zombie-select"].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- choose --</option>';
+    mine.forEach(z => {
+      const opt = document.createElement("option");
+      opt.value = z.id; opt.textContent = `#${z.id} — ${z.name} (Lv.${z.level})`;
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  });
+}
 
+function selectForBattle(id) {
+  switchTab("battle");
+  document.getElementById("attacker-select").value = id;
+  updateBattlePreview();
+}
 
-    function randomizeColor(button) {
-      const card = button.parentElement;
-      const img = card.querySelector("img");
-      const hue = Math.floor(Math.random() * 360);
-      img.style.filter = `hue-rotate(${hue}deg)`;
+async function updateBattlePreview() {
+  const id = document.getElementById("attacker-select").value;
+  const div = document.getElementById("attacker-preview");
+  if (!id) { div.innerHTML = ""; return; }
+  const z = myZombies.find(z => z.id === parseInt(id));
+  if (z) div.innerHTML = zombieSVG(z.dna, 90) + `<div style="font-size:12px;color:var(--muted);margin-top:4px">${z.name} · Lv.${z.level}</div>`;
+}
+
+async function updateTargetPreview() {
+  const id = document.getElementById("target-id").value;
+  const div = document.getElementById("target-preview");
+  if (!id && id !== "0") { div.innerHTML = ""; return; }
+  try {
+    const z = await zombieContract.methods.zombies(id).call();
+    div.innerHTML = zombieSVG(z.dna, 90) + `<div style="font-size:12px;color:var(--muted);margin-top:4px">${z.name} · Lv.${z.level}</div>`;
+  } catch(e) { div.innerHTML = `<div style="color:var(--red);font-size:12px">Zombie not found</div>`; }
+}
+
+async function attackZombie() {
+  const attackerId = document.getElementById("attacker-select").value;
+  const targetId   = document.getElementById("target-id").value;
+  if (!attackerId) { showAlert("battle","Select your zombie first.","error"); return; }
+  if (targetId === "" || targetId === null) { showAlert("battle","Enter an enemy zombie ID.","error"); return; }
+  if (attackerId === targetId) { showAlert("battle","Can't attack yourself!","error"); return; }
+  try {
+    const resultDiv = document.getElementById("battle-result");
+    resultDiv.className = ""; resultDiv.style.display = "none";
+    showAlert("battle",`<span class="spinner"></span> Battle in progress…`,"info");
+
+    const receipt = await zombieContract.methods.attack(attackerId, targetId).send({ from: account });
+    hideAlert("battle");
+
+    // Reload to get updated stats
+    await loadZombies();
+    const myZ = myZombies.find(z => z.id === parseInt(attackerId));
+
+    // Show result
+    resultDiv.style.display = "block";
+    resultDiv.className = "show";
+    // Heuristic: check if winCount went up by re-reading
+    const updatedZ = await zombieContract.methods.zombies(attackerId).call();
+    const prevZ    = myZ;
+    const won      = parseInt(updatedZ.winCount) > (prevZ ? prevZ.winCount : 0);
+    document.getElementById("battle-emoji").textContent = won ? "🏆" : "💀";
+    document.getElementById("battle-outcome-text").textContent = won ? "VICTORY!" : "DEFEAT";
+    document.getElementById("battle-detail").textContent = won
+      ? "Your zombie gained a level and spawned a new zombie!"
+      : "Your zombie lost and is now on cooldown.";
+    resultDiv.className = "show " + (won ? "win" : "loss");
+    showAlert("battle", won ? "You won the battle! 🏆" : "You lost this round. Train harder! 💀", won ? "success" : "error");
+  } catch(e) {
+    const msg = e.message.includes("cooldown") || e.message.includes("ready")
+      ? "Zombie is on cooldown! Wait before attacking again."
+      : e.message.includes("onlyOwnerOf") ? "You don't own that zombie."
+      : e.message;
+    showAlert("battle", msg, "error");
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KITTY
+// ═══════════════════════════════════════════════════════════════
+async function loadKitties() {
+  if (!kittyContract) return;
+  const div = document.getElementById("kitty-list");
+  div.innerHTML = "";
+  try {
+    const total = await kittyContract.methods.totalSupply().call();
+    for (let i = 0; i < Math.min(parseInt(total), 10); i++) {
+      const k = await kittyContract.methods.kitties(i).call();
+      const card = document.createElement("div");
+      card.className = "kitty-card";
+      card.id = `kitty-card-${i}`;
+      card.innerHTML = `
+        ${kittyAvatarSVG(k.genes, 48)}
+        <div>
+          <div style="font-size:13px;font-weight:600">Kitty #${i}</div>
+          <div style="font-size:11px;color:var(--muted)">Genes: ${String(k.genes).slice(0,12)}…</div>
+        </div>`;
+      card.onclick = () => {
+        document.querySelectorAll(".kitty-card").forEach(c => c.classList.remove("selected"));
+        card.classList.add("selected");
+        document.getElementById("kitty-id-manual").value = i;
+      };
+      div.appendChild(card);
     }
-  </script>
+  } catch(e) { div.innerHTML = `<span style="color:var(--muted);font-size:13px">Kitty contract not loaded.</span>`; }
+}
+
+function kittyAvatarSVG(genes, size) {
+  const g = String(genes).padStart(15,"0");
+  const hue = parseInt(g.slice(0,3)) % 360;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+    <rect width="48" height="48" rx="8" fill="#1a0a2e"/>
+    <ellipse cx="24" cy="26" rx="14" ry="12" fill="hsl(${hue},60%,55%)"/>
+    <polygon points="12,18 8,6 18,14" fill="hsl(${hue},60%,55%)"/>
+    <polygon points="36,18 40,6 30,14" fill="hsl(${hue},60%,55%)"/>
+    <polygon points="12,18 10,10 16,15" fill="hsl(${hue},80%,80%)"/>
+    <polygon points="36,18 38,10 32,15" fill="hsl(${hue},80%,80%)"/>
+    <ellipse cx="19" cy="25" rx="4" ry="5" fill="#111"/>
+    <ellipse cx="29" cy="25" rx="4" ry="5" fill="#111"/>
+    <ellipse cx="19" cy="25" rx="2" ry="3" fill="hsl(${(hue+180)%360},80%,70%)"/>
+    <ellipse cx="29" cy="25" rx="2" ry="3" fill="hsl(${(hue+180)%360},80%,70%)"/>
+    <ellipse cx="24" cy="30" rx="3" ry="2" fill="hsl(${hue},40%,70%)"/>
+    <line x1="16" y1="30" x2="6"  y2="28" stroke="#aaa" stroke-width="1"/>
+    <line x1="16" y1="32" x2="5"  y2="32" stroke="#aaa" stroke-width="1"/>
+    <line x1="32" y1="30" x2="42" y2="28" stroke="#aaa" stroke-width="1"/>
+    <line x1="32" y1="32" x2="43" y2="32" stroke="#aaa" stroke-width="1"/>
+  </svg>`;
+}
+
+async function feedOnKitty() {
+  const zombieId = document.getElementById("kitty-zombie-select").value;
+  const kittyId  = document.getElementById("kitty-id-manual").value;
+  if (!zombieId) { showAlert("kitty","Select your zombie first.","error"); return; }
+  if (kittyId === "") { showAlert("kitty","Select or enter a kitty ID.","error"); return; }
+  try {
+    showAlert("kitty",`<span class="spinner"></span> Feeding zombie #${zombieId} on kitty #${kittyId}…`,"info");
+    await zombieContract.methods.feedOnKitty(zombieId, kittyId).send({ from: account });
+    showAlert("kitty","Fed successfully! A new zombie with kitty DNA has spawned 🐱", "success");
+    loadZombies();
+  } catch(e) {
+    const msg = e.message.includes("cooldown") || e.message.includes("ready")
+      ? "Zombie is on cooldown!"
+      : e.message.includes("onlyOwnerOf") ? "You don't own that zombie."
+      : e.message;
+    showAlert("kitty", msg, "error");
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRANSFER / APPROVE / OWNER LOOKUP
+// ═══════════════════════════════════════════════════════════════
+async function transferZombie() {
+  const id   = document.getElementById("transfer-zombie-id").value;
+  const addr = document.getElementById("transfer-to").value.trim();
+  if (!id) { showAlert("transfer","Enter a zombie ID.","error"); return; }
+  if (!web3.utils.isAddress(addr)) { showAlert("transfer","Invalid address.","error"); return; }
+  try {
+    showAlert("transfer",`<span class="spinner"></span> Transferring #${id}…`,"info");
+    await zombieContract.methods.transferFrom(account, addr, id).send({ from: account });
+    showAlert("transfer",`Zombie #${id} transferred to ${addr.slice(0,8)}… ✅`,"success");
+    loadZombies();
+  } catch(e) { showAlert("transfer", e.message, "error"); }
+}
+
+async function approveZombie() {
+  const id   = document.getElementById("approve-zombie-id").value;
+  const addr = document.getElementById("approve-address").value.trim();
+  if (!id) { showAlert("transfer","Enter a zombie ID.","error"); return; }
+  if (!web3.utils.isAddress(addr)) { showAlert("transfer","Invalid address.","error"); return; }
+  try {
+    showAlert("transfer",`<span class="spinner"></span> Approving…`,"info");
+    await zombieContract.methods.approve(addr, id).send({ from: account });
+    showAlert("transfer",`Address approved to transfer zombie #${id} ✅`,"success");
+  } catch(e) { showAlert("transfer", e.message, "error"); }
+}
+
+async function lookupOwner() {
+  const id = document.getElementById("owner-zombie-id").value;
+  if (id === "") { showAlert("transfer","Enter a zombie ID.","error"); return; }
+  try {
+    const owner = await zombieContract.methods.ownerOf(id).call();
+    document.getElementById("owner-address").textContent = owner;
+    document.getElementById("owner-result").style.display = "block";
+  } catch(e) { showAlert("transfer","Zombie not found.","error"); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPLORE — ALL ZOMBIES
+// ═══════════════════════════════════════════════════════════════
+async function loadAllZombies() {
+  const grid  = document.getElementById("explore-grid");
+  const empty = document.getElementById("explore-empty");
+  grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--muted)"><span class="spinner"></span> Scanning chain…</div>`;
+  try {
+    const ids = await getAllZombieIds();
+    allZombies = [];
+    for (const id of ids) {
+      const z     = await zombieContract.methods.zombies(id).call();
+      const owner = await zombieContract.methods.zombieToOwner(id).call();
+      allZombies.push({ id: parseInt(id), name: z.name, dna: z.dna, level: parseInt(z.level), winCount: parseInt(z.winCount), lossCount: parseInt(z.lossCount), readyTime: parseInt(z.readyTime), owner });
+    }
+    renderZombieGrid(allZombies, "explore-grid");
+    empty.style.display = allZombies.length === 0 ? "block" : "none";
+  } catch(e) { showAlert("explore", e.message, "error"); grid.innerHTML = ""; }
+}
+
+function filterExplore() {
+  const q = document.getElementById("explore-search").value.toLowerCase();
+  const filtered = allZombies.filter(z => z.name.toLowerCase().includes(q) || String(z.dna).includes(q));
+  renderZombieGrid(filtered, "explore-grid");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS + ALERTS + UTILS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  const idx = ["army","create","battle","kitty","transfer","explore"].indexOf(name);
+  document.querySelectorAll(".tab-btn")[idx].classList.add("active");
+  if (name === "battle") populateSelects();
+  if (name === "kitty")  { populateSelects(); if (kittyContract) loadKitties(); }
+  if (name === "explore") loadAllZombies();
+}
+
+function showAlert(section, msg, type) {
+  const id = section === "global" ? "alert-global" : `alert-${section}`;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = `alert alert-${type} show`;
+  el.innerHTML = msg;
+}
+function hideAlert(section) {
+  const id = section === "global" ? "alert-global" : `alert-${section}`;
+  const el = document.getElementById(id);
+  if (el) { el.className = "alert"; el.innerHTML = ""; }
+}
+</script>
 </body>
 </html>

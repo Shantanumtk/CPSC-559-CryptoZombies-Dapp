@@ -8,4 +8,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["http-server", ".", "-p", "3000", "-a", "0.0.0.0"]
+CMD ["http-server", ".", "-p", "3000", "-a", "0.0.0.0", "--no-dotfiles"]

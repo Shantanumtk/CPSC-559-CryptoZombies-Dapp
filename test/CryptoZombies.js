@@ -1,4 +1,4 @@
-const CryptoZombies = artifacts.require("CryptoZombies");
+const CryptoZombies = artifacts.require("ZombieOwnership");
 const utils = require("./helpers/utils");
 const time = require("./helpers/time");
 const zombieNames = ["Zombie 1", "Zombie 2"];

@@ -1,167 +1,112 @@
-# Group Members: Fardeen Kachawa, Shantanu Mitkari, John Paul Gomez-Reed, Jaiveer Kapadia
-# CryptoZombies DApp — Dockerized Local Blockchain
+# CryptoZombies DApp — CPSC-559 Midterm
 
-A fully containerized CryptoZombies decentralized application running on a local Ethereum blockchain using Ganache, Truffle, and a Web3.js frontend.
+## Team Members
 
-Create, battle, and level up zombies — entirely on a local chain, reproducible with `docker compose up`.
+| Name                   | CWID      | Email                        |
+|------------------------|-----------|------------------------------|
+| Fardeen Kachawa        |           |                              |
+| Shantanu Mitkari       |           |                              |
+| John Paul Gomez-Reed   |           |                              |
+| Jaiveer Kapadia        |           |                              |
 
 ---
 
-## Architecture
+## Improvements Made
 
+### 1. Zombie DNA Avatar Generator
+Every zombie displays a unique SVG avatar generated from its 16-digit DNA.
+Head shape, eye style, eye color, shirt color, and skin tone all vary based on
+DNA segments. Kitty-DNA zombies (last 2 digits = 99) render with cat ears.
+
+### 2. Full-Featured Battle Arena
+Players can select their zombie, enter an enemy ID, and fight.
+The contract's 70% win-rate logic is preserved. Winning levels up the attacker
+and spawns a new zombie. The UI shows a live victory/defeat result with animated feedback.
+
+### 3. Feed on Kitty (Local KittyContract)
+A local `LocalKitty.sol` contract is deployed alongside `ZombieOwnership`.
+Three kitties are pre-minted at migration time. The Feed tab shows
+each kitty with a generated avatar and lets players feed their zombie,
+mutating its DNA (last 2 digits become 99) and spawning a new kitty-zombie.
+
+### 4. Zombie Army Gallery with Explorer
+The My Army tab shows all owned zombies with level, win/loss stats,
+cooldown status, and Level Up button. The Explore tab scans the entire
+chain and shows every zombie ever minted, searchable by name or DNA.
+
+### 5. Transfer, Approve & Owner Lookup
+Full ERC-721 transfer flow: direct `transferFrom`, `approve` for delegated
+transfer, and `ownerOf` lookup — all in a dedicated Transfer tab with
+address validation and transaction feedback.
+
+### 6. Sepolia Testnet Support
+`truffle-config.js` includes a `sepolia` network configuration.
+Set `MNEMONIC` and `SEPOLIA_RPC_URL` in `.env` and run:
 ```
-Frontend (HTML + Web3.js)    →    MetaMask Wallet    →    Ganache (Local Ethereum)
-     localhost:3000                Browser Extension           localhost:8545
-                                                                    │
-                                                          Smart Contracts (Solidity)
-                                                          Deployed via Truffle
+truffle migrate --reset --network sepolia
 ```
 
 ---
 
 ## Tech Stack
 
-| Layer            | Technology                            |
-|------------------|---------------------------------------|
-| Blockchain       | Ethereum (Local Dev Network)          |
-| Smart Contracts  | Solidity                              |
-| Dev Framework    | Truffle                               |
-| Local Chain      | Ganache CLI                           |
-| Frontend         | HTML, JavaScript, Web3.js, jQuery     |
-| Wallet           | MetaMask                              |
-| Infrastructure   | Docker, Docker Compose                |
-
----
-
-## Project Structure
-
-```
-Cryptozombie-demo-package/
-├── contracts/
-│   ├── Migrations.sol
-│   ├── ZombieFactory.sol
-│   ├── ZombieFeeding.sol
-│   ├── ZombieHelper.sol
-│   ├── ZombieAttack.sol
-│   └── ZombieOwnership.sol
-├── migrations/
-│   ├── 1_initial_migration.js
-│   └── 2_deploy_contracts.js
-├── build/contracts/
-│   └── ZombieOwnership.json
-├── frontend/
-│   └── index.html
-├── Dockerfile.truffle
-├── Dockerfile.frontend
-├── docker-compose.yml
-├── truffle-config.js
-└── README.md
-```
-
----
-
-## Prerequisites
-
-- Docker & Docker Compose
-- MetaMask browser extension
-- Chrome or Firefox
+| Layer           | Technology                          |
+|-----------------|-------------------------------------|
+| Blockchain      | Ethereum (Ganache local dev)        |
+| Smart Contracts | Solidity 0.4.25                     |
+| Dev Framework   | Truffle 5.x                         |
+| Local Chain     | Ganache 7.x (Docker)                |
+| Kitty Contract  | LocalKitty.sol (custom, local)      |
+| Frontend        | HTML5 + Vanilla JS + Web3.js 1.7.5  |
+| Wallet          | MetaMask                            |
+| Infrastructure  | Docker + Docker Compose             |
 
 ---
 
 ## Quick Start
-
-**1. Start the local blockchain**
-
 ```bash
+# 1. Start Ganache
 docker compose up -d ganache
-```
 
-Ganache exposes RPC at `http://localhost:8545`.
-
-**2. Deploy contracts**
-
-```bash
+# 2. Deploy contracts (inside Docker)
 docker compose run --rm truffle truffle migrate --reset --network development
-```
 
-Compiles Solidity contracts, deploys to Ganache, outputs artifacts to `build/contracts/`.
-
-**3. Start the frontend**
-
-```bash
+# 3. Start frontend
 docker compose up -d frontend
+
+# 4. Open http://localhost:3000
 ```
-
-Open `http://localhost:3000` in your browser.
-
----
 
 ## MetaMask Setup
 
-### Import a Ganache Account
+- **Network Name**: Ganache Local
+- **RPC URL**: `http://127.0.0.1:8545`
+- **Chain ID**: `1337`
+- **Currency**: ETH
 
-```bash
-docker compose logs ganache
-```
-
-Copy any private key from the `Private Keys` section. In MetaMask: **Account Icon → Import Account → Private Key → Paste**.
-
-> Remove the `0x` prefix if MetaMask rejects the key.
-
-### Add Ganache Network
-
-In MetaMask: **Settings → Networks → Add Network → Add Manually**
-
-```
-Network Name:    Ganache Local
-RPC URL:         http://127.0.0.1:8545
-Chain ID:        1337
-Currency Symbol: ETH
-```
-
-Switch to **Ganache Local** — the imported account should show 1000 ETH (test ETH).
+Import a private key from: `docker compose logs ganache` (copy any key from the Private Keys section, strip the `0x` prefix if rejected).
 
 ---
 
-## Usage
-
-1. Open `http://localhost:3000`
-2. Approve the MetaMask connection prompt
-3. Available actions:
-   - **Create Zombie** — mint a new zombie on-chain
-   - **Show Zombies** — view your zombie army
-   - **Level Up Zombie** — power up a zombie
-
-Each action sends a transaction to the local blockchain.
-
----
-
-## Common Operations
-
-**Redeploy contracts**
-
-```bash
-docker compose run --rm truffle truffle migrate --reset --network development
+## Project Structure
 ```
-
-**Full reset (wipes blockchain state)**
-
-```bash
-docker compose down -v
-docker compose up -d ganache
-docker compose run --rm truffle truffle migrate --reset --network development
-docker compose up -d frontend
+├── contracts/
+│   ├── LocalKitty.sol        ← NEW: local kitty contract for feed functionality
+│   ├── ZombieOwnership.sol   ← top-level contract (ERC-721)
+│   ├── ZombieAttack.sol
+│   ├── ZombieHelper.sol
+│   ├── ZombieFeeding.sol
+│   ├── ZombieFactory.sol
+│   ├── ownable.sol
+│   ├── safemath.sol
+│   └── erc721.sol
+├── migrations/
+│   ├── 1_initial_migration.js
+│   └── 2_deploy_contracts.js  ← deploys both ZombieOwnership + LocalKitty
+├── index.html                 ← full rewrite: 6-tab UI with DNA avatars
+├── truffle-config.js          ← Ganache + Sepolia configs
+├── docker-compose.yml
+├── Dockerfile.ganache
+├── Dockerfile.frontend
+└── README.md
 ```
-
-> Ganache generates new private keys after reset — re-import them in MetaMask.
-
----
-
-## Troubleshooting
-
-| Problem                  | Fix                                                                      |
-|--------------------------|--------------------------------------------------------------------------|
-| MetaMask can't connect   | Check Ganache is running: `docker compose ps`. RPC must be `http://127.0.0.1:8545` |
-| Private key import fails | Strip the `0x` prefix                                                    |
-| Transactions failing     | Verify MetaMask is on Ganache Local, not Mainnet                         |
-| Frontend stale           | Hard refresh: `Cmd+Shift+R` / `Ctrl+Shift+R`                            |

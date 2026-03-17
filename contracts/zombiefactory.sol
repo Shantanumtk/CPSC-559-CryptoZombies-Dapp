@@ -13,7 +13,7 @@ contract ZombieFactory is Ownable {
 
   uint dnaDigits = 16;
   uint dnaModulus = 10 ** dnaDigits;
-  uint cooldownTime = 1 days;
+  uint cooldownTime = 10 seconds;
 
   struct Zombie {
     string name;
@@ -42,6 +42,7 @@ contract ZombieFactory is Ownable {
   }
 
   function createRandomZombie(string _name) public {
+    require(ownerZombieCount[msg.sender] == 0, "You already own a zombie");
     uint randDna = _generateRandomDna(_name);
     randDna = randDna - randDna % 100;
     _createZombie(_name, randDna);

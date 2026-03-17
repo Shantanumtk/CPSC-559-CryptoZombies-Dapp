@@ -6,6 +6,8 @@ services:
     container_name: cz-ganache
     ports:
       - "8545:8545"
+    networks:
+      - cznet
 
   truffle:
     build:
@@ -17,6 +19,8 @@ services:
       - .:/app
     depends_on:
       - ganache
+    networks:
+      - cznet
 
   frontend:
     build:
@@ -30,3 +34,9 @@ services:
       - "3000:3000"
     depends_on:
       - ganache
+    networks:
+      - cznet
+
+networks:
+  cznet:
+    driver: bridge
