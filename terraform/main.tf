@@ -168,9 +168,9 @@ output "ssh_command" {
 }
 
 output "public_dns" {
-  value = "http://${aws_instance.cryptozombies.public_dns}:3000"
+  value = "http://ec2-${replace(aws_eip.cryptozombies_eip.public_ip, ".", "-")}.compute-1.amazonaws.com:3000"
 }
 
 output "ganache_rpc_dns" {
-  value = "http://${aws_instance.cryptozombies.public_dns}:8545"
+  value = "http://ec2-${replace(aws_eip.cryptozombies_eip.public_ip, ".", "-")}.compute-1.amazonaws.com:8545"
 }
